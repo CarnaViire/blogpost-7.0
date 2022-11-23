@@ -7,4 +7,4 @@ Unfortunately, the .NET 6.0 implementation turned out to be problematic for some
 In .NET 7.0 we implemented the following changes to address these issues:
 
 - A failing connection attempt can only fail it's initiating request, and never an unrelated one. If the original request has been handled by the time a connection fails, the connection failure is ignored ([dotnet/runtime#62935](https://github.com/dotnet/runtime/pull/62935)).
-- If a request initiates a new connection, but then becomes handled by another connection from the pool, the new pending connection attempt will time out after a short period, regardless of `ConnectTimeout`. With this change, stalled connections will never stall unrelated requests ([dotnet/runtime#71785](https://github.com/dotnet/runtime/pull/71785)).
+- If a request initiates a new connection, but then becomes handled by another connection from the pool, the new pending connection attempt will time out after a short period, regardless of `ConnectTimeout`. With this change, stalled connections will not stall unrelated requests ([dotnet/runtime#71785](https://github.com/dotnet/runtime/pull/71785)).

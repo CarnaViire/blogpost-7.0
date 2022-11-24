@@ -11,7 +11,7 @@ In case of failure, HTTP status code can help to distinguish between retriable a
 Also note that in case of a successful connect and after consuming `HttpResponseHeaders` data, you can reduce `ClientWebSocket`'s memory footprint by setting `ClientWebSocket.HttpResponseHeaders` property to `null`.
 
 ```c#
-ClientWebSocket ws = new();
+var ws = new ClientWebSocket();
 ws.Options.CollectHttpResponseDetails = true;
 try
 {
@@ -39,8 +39,8 @@ In a default case, `ClientWebSocket` would use a cached static `HttpMessageInvok
 ```c#
 var httpClient = new HttpClient();
 
-var cws = new ClientWebSocket();
-await cws.ConnectAsync(uri, httpClient, cancellationToken);
+var ws = new ClientWebSocket();
+await ws.ConnectAsync(uri, httpClient, cancellationToken);
 ```
 
 Note that in case a custom HTTP invoker is passed, any of the following `ClientWebSocketOptions` *must not* be set, and should be set up on the HTTP invoker instead:
@@ -75,8 +75,8 @@ if (clientCertificates?.Count > 0)
 }
 var invoker = new HttpMessageInvoker(handler);
 
-var cws = new ClientWebSocket();
-await cws.ConnectAsync(uri, invoker, cancellationToken);
+var ws = new ClientWebSocket();
+await ws.ConnectAsync(uri, invoker, cancellationToken);
 ```
 
 ## WebSockets over HTTP/2
@@ -88,10 +88,10 @@ To enable WebSockets over HTTP/2, you can set [ClientWebSocketOptions.HttpVersio
 For example, the following code would probe for HTTP/2 WebSockets, and if a WebSocket connection could not be established, it will fallback to HTTP/1.1:
 
 ```c#
-var cws = new ClientWebSocket();
-cws.Options.HttpVersion = HttpVersion.Version20;
-cws.Options.HttpVersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
-await cws.ConnectAsync(uri, httpClient, cancellationToken);
+var ws = new ClientWebSocket();
+ws.Options.HttpVersion = HttpVersion.Version20;
+ws.Options.HttpVersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
+await ws.ConnectAsync(uri, httpClient, cancellationToken);
 ```
 
 The combination of `HttpVersion.Version11` and `HttpVersionPolicy.RequestVersionOrHigher` will result in the same behavior as above, while `HttpVersionPolicy.RequestVersionExact` will disallow upgrade/downgrade of HTTP version.

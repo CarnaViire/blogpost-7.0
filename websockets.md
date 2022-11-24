@@ -30,9 +30,53 @@ catch (WebSocketException)
 }
 ```
 
-## Providing custom HTTP invoker
+## Providing custom HTTP client
 
+In a default case, `ClientWebSocket` would use a cached static `HttpMessageInvoker` instance to execute HTTP Upgrade requests. However, if options such as `ClientWebSocketOptions.Proxy`, `ClientWebSocketOptions.ClientCertificates` or `ClientWebSocketOptions.Cookies` are passed, `HttpMessageInvoker`s with such parameters are not safe to be reused, so they would be created each time per `ClientWebSocket.ConnectAsync` call. This results in more allocations that could be necessary and makes potential reuse of `HttpMessageInvoker` instances and established HTTP connections impossible.
 
+.NET 7 allows you to pass an existing `HttpClient` or `HttpMessageInvoker` instance to `ClientWebSocket.ConnectAsync` call, using the [ConnectAsync(Uri, HttpMessageInvoker, CancellationToken)](https://learn.microsoft.com/en-us/dotnet/api/system.net.websockets.clientwebsocket.connectasync?view=net-7.0#system-net-websockets-clientwebsocket-connectasync(system-uri-system-net-http-httpmessageinvoker-system-threading-cancellationtoken)) overload. In that case, HTTP Upgrade request would be executed using the provided instance.
 
+```c#
+var httpClient = new HttpClient();
+
+var cws = new ClientWebSocket();
+await cws.ConnectAsync(uri, httpClient, cancellationToken);
+```
+
+Note that in case a custom HTTP invoker is passed, any of the following `ClientWebSocketOptions` *must not* be set, and should be set up on the HTTP invoker instead:
+- [ClientCertificates](https://learn.microsoft.com/en-us/dotnet/api/system.net.websockets.clientwebsocketoptions.clientcertificates?view=net-7.0)
+- [Cookies](https://learn.microsoft.com/en-us/dotnet/api/system.net.websockets.clientwebsocketoptions.cookies?view=net-7.0)
+- [Credentials](https://learn.microsoft.com/en-us/dotnet/api/system.net.websockets.clientwebsocketoptions.credentials?view=net-7.0)
+- [Proxy](https://learn.microsoft.com/en-us/dotnet/api/system.net.websockets.clientwebsocketoptions.proxy?view=net-7.0)
+- [RemoteCertificateValidationCallback](https://learn.microsoft.com/en-us/dotnet/api/system.net.websockets.clientwebsocketoptions.remotecertificatevalidationcallback?view=net-7.0)
+- [UseDefaultCredentials](https://learn.microsoft.com/en-us/dotnet/api/system.net.websockets.clientwebsocketoptions.usedefaultcredentials?view=net-7.0)
+
+This is how you can set up all of these options on the HTTP invoker instance:
+
+```c#
+var handler = new HttpClientHandler();
+handler.CookieContainer = cookies;
+handler.UseCookies = cookies != null;
+handler.ServerCertificateCustomValidationCallback = remoteCertificateValidationCallback;
+handler.Credentials = useDefaultCredentials ?
+    CredentialCache.DefaultCredentials :
+    credentials;
+if (proxy == null)
+{
+    handler.UseProxy = false;
+}
+else
+{
+    handler.Proxy = proxy;
+}
+if (clientCertificates?.Count > 0)
+{
+    handler.ClientCertificates.AddRange(clientCertificates);
+}
+var invoker = new HttpMessageInvoker(handler);
+
+var cws = new ClientWebSocket();
+await cws.ConnectAsync(uri, invoker, cancellationToken);
+```
 
 ## WebSockets over HTTP/2

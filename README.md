@@ -11,5 +11,5 @@ System.Net.Security | Negotiate API | Draft PR https://github.com/CarnaViire/blo
 System.Net.Security | TLS Resume | 
 System.Net.Security | SslStream compatibility gaps fix | 
 System.Net.Security | SslStream perf improvements (?) | 
-System.Net | WebSockets over HTTP/2 | 
-System.Net | New WebSockets APIs (Upgrage Resp Details etc) | 
+System.Net | WebSockets over HTTP/2 | PR https://github.com/CarnaViire/blogpost-7.0/pull/3
+System.Net | New WebSockets APIs (Upgrage Resp Details etc) | PR https://github.com/CarnaViire/blogpost-7.0/pull/3

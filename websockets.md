@@ -30,7 +30,7 @@ catch (WebSocketException)
 }
 ```
 
-## Providing custom HTTP client
+## Providing external HTTP client
 
 In a default case, `ClientWebSocket` would use a cached static `HttpMessageInvoker` instance to execute HTTP Upgrade requests. However, if options such as `ClientWebSocketOptions.Proxy`, `ClientWebSocketOptions.ClientCertificates` or `ClientWebSocketOptions.Cookies` are passed, `HttpMessageInvoker`s with such parameters are not safe to be reused, so they would be created each time per `ClientWebSocket.ConnectAsync` call. This results in more allocations that could be necessary and makes potential reuse of `HttpMessageInvoker` instances and established HTTP connections impossible.
 
@@ -80,3 +80,22 @@ await cws.ConnectAsync(uri, invoker, cancellationToken);
 ```
 
 ## WebSockets over HTTP/2
+
+.NET 7 also adds an ability to use WebSocket protocol over HTTP/2, as described in [RFC 8441](https://www.rfc-editor.org/rfc/rfc8441). With that, WebSocket connection would be established over a single stream of HTTP/2 connection. This will allow for a single TCP connection to be shared between two protocols and to be used for several WebSocket connections and HTTP requests at the same time, resulting in more efficient use of the network.
+
+To enable WebSockets over HTTP/2, you can set [ClientWebSocketOptions.HttpVersion](https://learn.microsoft.com/en-us/dotnet/api/system.net.websockets.clientwebsocketoptions.httpversion?view=net-7.0) option to `HttpVersion.Version20`. You can also enable upgrade/downgrade of HTTP version used by setting [ClientWebSocketOptions.HttpVersionPolicy](https://learn.microsoft.com/en-us/dotnet/api/system.net.websockets.clientwebsocketoptions.httpversionpolicy?view=net-7.0) property. These options will behave in the same way `HttpRequestMessage.Version` and `HttpRequestMessage.VersionPolicy` behave.
+
+For example, the following code would probe for HTTP/2 WebSockets, and if a WebSocket connection could not be established, it will fallback to HTTP/1.1:
+
+```c#
+var cws = new ClientWebSocket();
+cws.Options.HttpVersion = HttpVersion.Version20;
+cws.Options.HttpVersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
+await cws.ConnectAsync(uri, httpClient, cancellationToken);
+```
+
+The combination of `HttpVersion.Version11` and `HttpVersionPolicy.RequestVersionOrHigher` will result in the same behavior as above, while `HttpVersionPolicy.RequestVersionExact` will disallow upgrade/downgrade of HTTP version.
+
+By default, `HttpVersion = HttpVersion.Version11` and `HttpVersionPolicy = HttpVersionPolicy.RequestVersionOrLower`, which means that by default only HTTP/1.1 will be used.
+
+Note that, because the ability to multiplex WebSocket connections (and HTTP requests) over a single HTTP/2 connection is the crucial part of the feature, you can *only* use it when you pass an `HttpClient` of `HttpMessageInvoker` instance from your code (i.e. use [ClientWebSocket.ConnectAsync(Uri, HttpMessageInvoker, CancellationToken)](https://learn.microsoft.com/en-us/dotnet/api/system.net.websockets.clientwebsocket.connectasync?view=net-7.0#system-net-websockets-clientwebsocket-connectasync(system-uri-system-net-http-httpmessageinvoker-system-threading-cancellationtoken)) overload), so that the connection pool within this `HttpClient` of `HttpMessageInvoker` instance could be used for multiplexing.

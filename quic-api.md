@@ -281,4 +281,4 @@ More details about how this class was designed can be found in the [`QuicStream`
 
 ## Future
 
-As `System.Net.Quic` is newly made public and we have only limited usages, we'll appreciate any bug reports or feedback on the API shape. Thanks to them being in preview mode, we still have a chance to tweak them for .NET 8.
+As `System.Net.Quic` is newly made public and we have only limited usages, we'll appreciate any bug reports or feedback on the API shape. Thanks to APIs being in preview mode, we still have a chance to tweak them for .NET 8 based on the feedback we get. Issues can be file in runtime repository: https://github.com/dotnet/runtime/issues/new/choose.

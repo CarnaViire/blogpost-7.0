@@ -10,7 +10,7 @@ The protocol offers many advantages over TCP with TLS. For example, faster conne
 
 We introduced QUIC implementation in .NET 5 in `System.Net.Quic` library. However up until now, the library was strictly internal and served only for own implementation of HTTP/3. With the release of .NET 7, we're making the library public and we're exposing its APIs. Since we had only `HttpClient` and Kestrel as consumers of the APIs, we decided to keep them as [preview feature](https://github.com/dotnet/designs/blob/main/accepted/2021/preview-features/preview-features.md). It gives us ability to tweak the API in the next release before we settle on the final shape.
 
-From the implementation perspective, `System.Net.Quic` depends on [MsQuic](https://github.com/microsoft/msquic), native implementation of the QUIC protocol. As a result, `System.Net.Quic` platform support and dependencies are inherited from MsQuic and documented in [HTTP/3 Platform dependencies](https://learn.microsoft.com/en-us/dotnet/core/extensions/httpclient-http3#platform-dependencies). It is still possible to build MsQuic manually, whether against SChannel or OpenSSL, and use it with `System.Net.Quic`. However, these scenarios are not part of our testing matrix and unforeseen problems might occur.
+From the implementation perspective, `System.Net.Quic` depends on [MsQuic](https://github.com/microsoft/msquic), native implementation of QUIC protocol. As a result, `System.Net.Quic` platform support and dependencies are inherited from MsQuic and documented in [HTTP/3 Platform dependencies](https://learn.microsoft.com/en-us/dotnet/core/extensions/httpclient-http3#platform-dependencies). It is still possible to build MsQuic manually, whether against SChannel or OpenSSL, and use it with `System.Net.Quic`. However, these scenarios are not part of our testing matrix and unforeseen problems might occur.
 
 ## API Overview
 
@@ -107,7 +107,7 @@ More details about how this class was designed can be found in the [`QuicListene
 
 ### QuicConnection
 
-[`QuicConnection`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection?view=net-7.0) is a class used for both server and client side QUIC connections. Server side connections are created internally by the listener and handed out via [`QuicListener.AcceptConnectionAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quiclistener.acceptconnectionasync?view=net-7.0). On the other hand, client side connections must be opened and connected to the server. As with the listener, there's a static method [`QuicConnection.ConnectAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection.connectasync?view=net-7.0) that instantiates and connects the connection. It accepts an instance of [`QuicClientConnectionOptions`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicclientconnectionoptions?view=net-7.0), an analogous class to [`QuicServerConnectionOptions`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicserverconnectionoptions?view=net-7.0) returned from [`QuicListenerOptions.ConnectionOptionsCallback`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quiclisteneroptions.connectionoptionscallback?view=net-7.0). After that, the work with the connection doesn't differ between client and server. It can open outgoing streams and accept incoming ones. It also provides interesting properties like [`LocalEndPoint`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection.localendpoint?view=net-7.0), [`RemoteEndPoint`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection.remoteendpoint?view=net-7.0), or [`RemoteCertificate`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection.remotecertificate?view=net-7.0).
+[`QuicConnection`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection?view=net-7.0) is a class used for both server and client side QUIC connections. Server side connections are created internally by the listener and handed out via [`QuicListener.AcceptConnectionAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quiclistener.acceptconnectionasync?view=net-7.0). Client side connections must be opened and connected to the server. As with the listener, there's a static method [`QuicConnection.ConnectAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection.connectasync?view=net-7.0) that instantiates and connects the connection. It accepts an instance of [`QuicClientConnectionOptions`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicclientconnectionoptions?view=net-7.0), an analogous class to [`QuicServerConnectionOptions`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicserverconnectionoptions?view=net-7.0) returned with [`QuicListenerOptions.ConnectionOptionsCallback`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quiclisteneroptions.connectionoptionscallback?view=net-7.0). After that, the work with the connection doesn't differ between client and server. It can open outgoing streams and accept incoming ones. It also provides properties with information about the connection like [`LocalEndPoint`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection.localendpoint?view=net-7.0), [`RemoteEndPoint`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection.remoteendpoint?view=net-7.0), or [`RemoteCertificate`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection.remotecertificate?view=net-7.0).
 
 When the work with the connection is done, it needs to be closed and disposed. However, QUIC protocol mandates using an application layer code for immediate closure, see [RFC 9000 - 10.2. Immediate Close](https://www.rfc-editor.org/rfc/rfc9000.html#name-immediate-close). For that, [`CloseAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection.closeasync?view=net-7.0) with application layer code can be called or if not, [`DisposeAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection.disposeasync?view=net-7.0) will use the code provided in [`QuicConnectionOptions.DefaultCloseErrorCode`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnectionoptions.defaultcloseerrorcode?view=net-7.0#system-net-quic-quicconnectionoptions-defaultcloseerrorcode). Either way, [`DisposeAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection.disposeasync?view=net-7.0) must be called at the end of the work with the connection to fully release all the associated resources.
 
@@ -148,17 +148,17 @@ var clientConnectionOptions = new QuicClientConnectionOptions()
     }
 };
 
-// Initialize, configure and connect the connection.
+// Initialize, configure and connect to the server.
 var connection = await QuicConnection.ConnectAsync(clientConnectionOptions);
 
 Console.WriteLine($"Connected {connection.LocalEndPoint} --> {connection.RemoteEndPoint}");
 
-// Open a bidirectional (can write and can read) outbound stream.
+// Open a bidirectional (can both read and write) outbound stream.
 var outgoingStream = await connection.OpenOutboundStreamAsync(QuicStreamType.Bidirectional);
 
 // Work with the outgoing stream ...
 
-// To accept any stream on a client connection at least one of MaxInboundBidirectionalStreams or MaxInboundUnidirectionalStreams of QuicConnectionOptions must be set.
+// To accept any stream on a client connection, at least one of MaxInboundBidirectionalStreams or MaxInboundUnidirectionalStreams of QuicConnectionOptions must be set.
 while (isRunning)
 {
     // Accept an inbound stream.
@@ -177,3 +177,108 @@ await connection.DisposeAsync();
 More details about how this class was designed can be found in the [`QuicConnection` API Proposal](https://github.com/dotnet/runtime/issues/68902) issue.
 
 ### QuicStream
+
+[`QuicStream`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream?view=net-7.0) is the actual type that is used to send and receive data in QUIC protocol. It derives from ordinary [`Stream`](https://learn.microsoft.com/en-us/dotnet/api/system.io.stream?view=net-7.0) and can be used as such. But it also offers several features that are specific to QUIC protocol. Firstly, a QUIC stream can either be unidirectional or bidirectional, see [RFC 9000 - 2.1. Stream Types and Identifiers](https://www.rfc-editor.org/rfc/rfc9000.html#name-stream-types-and-identifier). A bidirectional stream is able to send and receive data on both sides, whereas unidirectional stream can only write from the initiating side and read on the accepting one. A connection can limit how many concurrent stream of each type is willing to accept, see [`QuicConnectionOptions.MaxInboundBidirectionalStreams`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnectionoptions.maxinboundbidirectionalstreams?view=net-7.0) and [`QuicConnectionOptions.MaxInboundUnidirectionalStreams`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnectionoptions.maxinboundunidirectionalstreams?view=net-7.0).
+
+Another particularity of QUIC stream is ability to explicitly close the writing side in the middle of work with the stream, see [`CompleteWrites`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream.completewrites?view=net-7.0) or [`WriteAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream.writeasync?view=net-7.0#system-net-quic-quicstream-writeasync(system-readonlymemory((system-byte))-system-boolean-system-threading-cancellationtoken)) overload with `completeWrites` argument. The closing of the writing side lets the peer know that no more data will arrive but the peer still can continue sending (in case of a bidirectional stream). This is useful in scenarios like HTTP request/response exchange when the client sends the request and closes the writing side to let the server know that this is the end of the request content. Server is still able to send the response after that but knows that no more data will arrive from the client. And for erroneous cases, either writing or reading side of the stream can be aborted, see [`Abort`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream.abort?view=net-7.0). The behavior of the individual methods for each stream type is summarized in the following table:
+
+|            | client  | server  |
+| -          | -       | -       |
+| `CanRead`  | _bidirectional_: `true`<br/> _unidirectional_: `false` | `true`  |
+| `CanWrite` | `true`  | _bidirectional_: `true`<br/> _unidirectional_: `false` |
+| `ReadAsync` | _bidirectional_: reads data<br/> _unidirectional_: `InvalidOperationException` | reads data |
+| `WriteAsync` | sends data => server read returns the data | _bidirectional_: sends data => client read returns the data<br/> _unidirectional_: `InvalidOperationException`  |
+| `CompleteWrites` | closes writing side => server read returns 0 | _bidirectional_: closes writing side => client read returns 0<br/> _unidirectional_: - |
+| `Abort(QuicAbortDirection.Read)` | _bidirectional_: [STOP_SENDING](https://www.rfc-editor.org/rfc/rfc9000.html#name-stop_sending-frames) => server write throws `QuicException(QuicError.OperationAborted)`<br/> _unidirectional_: - | [STOP_SENDING](https://www.rfc-editor.org/rfc/rfc9000.html#name-stop_sending-frames) => client write throws `QuicException(QuicError.OperationAborted)`|
+| `Abort(QuicAbortDirection.Write)` | [RESET_STREAM](https://www.rfc-editor.org/rfc/rfc9000.html#name-reset_stream-frames) => server read throws `QuicException(QuicError.OperationAborted)` | _bidirectional_: [RESET_STREAM](https://www.rfc-editor.org/rfc/rfc9000.html#name-reset_stream-frames) => client read throws `QuicException(QuicError.OperationAborted)`<br/> _unidirectional_: - |
+
+On top of these methods, `QuicStream` offers two specialized properties to get notified whenever either reading or a writing side of the stream has been closed: [`ReadsClosed`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream.readsclosed?view=net-7.0) and [`WritesClosed`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream.writesclosed?view=net-7.0). Both return `Task` that completes with its corresponding side getting closed, whether it be success or abort, in which case the `Task` will contain appropriate exception. These properties are useful in cases when the user code needs to know about a stream side getting closed without issuing call to `ReadAsync` or `WriteAsync`.
+
+Finally, when the work with the stream is done, it needs to be disposed with [`DisposeAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream.disposeasync?view=net-7.0). The dispose will make sure that both reading and/or writing side - depending on the stream type - is closed. If stream hasn't been properly read till the end, dispose will issue an equivalent of `Abort(QuicAbortDirection.Read)`. However if stream writing side hasn't been closed, it will be gracefully closed as it would be with `CompleteWrites`. The reason for this difference is to make sure that scenarios working with an ordinary `Stream` behave as expected and lead to a successful path. Consider the following example:
+```C#
+async Task WorkWithStream(Stream stream)
+{
+    await using (stream)
+    {
+        byte[] buffer = new byte[1024];
+        int count = 0;
+        while ((count = await stream.ReadAsync(buffer)) > 0)
+        {
+            await stream.WriteAsync(buffer.AsMemory(0, count));
+        }
+    }
+}
+
+var quicStream = await connection.OpenOutboundStreamAsync(QuicStreamType.Bidirectional);
+await WorkWithStream(quicStream);
+
+```
+
+The sample usage of `QuicStream` in client scenario:
+```C#
+// Consider connection from the connection example, open a bidirectional stream.
+await using var stream = await connection.OpenStreamAsync(QuicStreamType.Bidirectional, cancellationToken);
+
+// Send some data.
+await stream.WriteAsync(data, cancellationToken);
+await stream.WriteAsync(data, cancellationToken);
+
+// End the writing-side together with the last data.
+await stream.WriteAsync(data, endStream: true, cancellationToken);
+// Or separately.
+stream.CompleteWrites();
+
+// Read data until the end of stream.
+while (await stream.ReadAsync(buffer, cancellationToken) > 0)
+{
+    // Handle buffer data...
+}
+
+// DisposeAsync called by await using at the top.
+```
+
+And the sample usage of `QuicStream` in server scenario:
+```C#
+// Consider connection from the connection example, accept a stream.
+await using var stream = await connection.AcceptStreamAsync(cancellationToken);
+
+if (stream.Type != QuicStreamType.Bidirectional)
+{
+    Console.WriteLine($"Expected bidirectional stream, got {stream.Type}");
+    return;
+}
+
+// Read the data.
+while (stream.ReadAsync(buffer, cancellationToken) > 0)
+{
+    // Handle buffer data...
+
+    // Client completed the writes, the loop might be exited now without another ReadAsync.
+    if (stream.ReadsCompleted.IsCompleted)
+    {
+        break;
+    }
+}
+
+// Listen for Abort(QuicAbortDirection.Read) from the client.
+var writesClosedTask = WritesClosedAsync(stream);
+async ValueTask WritesClosedAsync(QuicStream stream)
+{
+    try
+    {
+        await stream.WritesClosed;
+    }
+    catch (Exception ex)
+    {
+        // Handle aborted writing side ...
+    }
+}
+
+// DisposeAsync called by await using at the top.
+```
+
+More details about how this class was designed can be found in the [`QuicStream` API Proposal](https://github.com/dotnet/runtime/issues/69675) issue.
+
+## Future
+
+As `System.Net.Quic` is newly made public and we have only limited usages, we'll appreciate any bug reports or feedback on the API shape. Thanks to them being in preview mode, we still have a chance to tweak them for .NET 8.

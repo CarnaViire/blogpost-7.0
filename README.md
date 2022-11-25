@@ -5,7 +5,7 @@ Area | Topic | Status
 System.Net.Quic | Public APIs and examples | Draft PR https://github.com/CarnaViire/blogpost-7.0/pull/4
 System.Net.Http | HTTP/3 |
 System.Net.Http | Connection pooling changes | PR https://github.com/CarnaViire/blogpost-7.0/pull/2 
-System.Net.Http | Headers thread safety | 
+System.Net.Http | Headers thread safety | PR https://github.com/CarnaViire/blogpost-7.0/pull/5
 System.Net.Http | Protocol exceptions | PR https://github.com/CarnaViire/blogpost-7.0/pull/2
 System.Net.Security | Negotiate API | Draft PR https://github.com/CarnaViire/blogpost-7.0/pull/1
 System.Net.Security | TLS Resume | 

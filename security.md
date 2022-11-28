@@ -74,6 +74,8 @@ while (!clientAuthentication.IsAuthenticated)
 
 Once the authenticated session is established, the `NegotiateAuthentication` instance can be used to sign/encrypt the outgoing messages and verify/decrypt the incoming messages. This is done through the [Wrap](https://learn.microsoft.com/en-us/dotnet/api/system.net.security.negotiateauthentication.wrap?view=net-7.0) and [Unwrap](https://learn.microsoft.com/en-us/dotnet/api/system.net.security.negotiateauthentication.unwrap?view=net-7.0) methods.
 
+This change was done as well as this part of the article was written by a community contributor [@filipnavara](https://github.com/filipnavara).
+
 
 ## Performance
 
@@ -87,6 +89,11 @@ Establishing new TLS connection is fairly expensive operation as it requires mul
 - Cache size control: [PR #69065](https://github.com/dotnet/runtime/pull/69065)
 
 These changes bring .NET 7 Linux support of TLS resume on par with Windows capabilities.
+
+### OCSP Stapling
+
+Online Certificate Status Protocol (OCSP) Stapling is a mechanism for server to provide signed and timestamped proof (OCSP response) that the sent certificate has not been revoked, see [RFC 6961](https://www.rfc-editor.org/rfc/rfc6961). As a result, client doesn't need to contact the OCSP server itself, reducing the number of requests necessary to establish the connection as well as the load exerted on the OCSP server. And as the OCSP response needs to be signed by the certificate authority (CA), it cannot forged by the server providing the certififcate. We didn't take advantage of this TLS feature up until this release, for more details see [Issue #33377](https://github.com/dotnet/runtime/issues/33377).
+
 
 
 

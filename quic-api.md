@@ -1,6 +1,6 @@
 # QUIC
 
-QUIC is a new, transport layer protocol. It has been recently standardized in [RFC 9000](https://www.rfc-editor.org/rfc/rfc9000.html). It uses UDP as an underlying protocol and it's inherently secure as it mandates TLS 1.3 usage, see [RFC 9001](https://www.rfc-editor.org/rfc/rfc9001.html). Another interesting difference from well known transport protocols as TCP and UDP is that it offers stream multiplexing over a shared connection. The connection between two endpoints negotiates secrets and settings and then the individual streams exchange data between the peers. This allows to have multiple, concurrent, independent data streams that do not affect each other.
+QUIC is a new, transport layer protocol. It has been recently standardized in [RFC 9000](https://www.rfc-editor.org/rfc/rfc9000.html). It uses UDP as an underlying protocol and it's inherently secure as it mandates TLS 1.3 usage, see [RFC 9001](https://www.rfc-editor.org/rfc/rfc9001.html). Another interesting difference from well-known transport protocols such as TCP and UDP is that it has stream multiplexing built-in on the transport layer. This allows having multiple, concurrent, independent data streams that do not affect each other.
 
 QUIC itself doesn't define any semantics for the exchanged data as it's a transport protocol but it's used in application layer protocols. For example in [HTTP/3](https://www.rfc-editor.org/rfc/rfc9114.html) or in [SMB over QUIC](https://learn.microsoft.com/en-us/windows-server/storage/file-server/smb-over-quic). It can also be used for any custom defined protocol.
 
@@ -62,17 +62,17 @@ var serverConnectionOptions = new QuicServerConnectionOptions()
 {
     // Used to abort stream if it's not properly closed by the user.
     // See https://www.rfc-editor.org/rfc/rfc9000.html#name-application-protocol-error-
-    DefaultStreamErrorCode = 0x010b, // H3_REQUEST_REJECTED
+    DefaultStreamErrorCode = 0x0A, // Protocol-dependent error code.
 
     // Used to close the connection if it's not done by the user.
     // See https://www.rfc-editor.org/rfc/rfc9000.html#name-application-protocol-error-
-    DefaultCloseErrorCode = 0x010b, // H3_INTERNAL_ERROR
+    DefaultCloseErrorCode = 0x0B, // Protocol-dependent error code.
 
     // Same options as for server side SslStream.
     ServerAuthenticationOptions = new SslServerAuthenticationOptions
     {
         // List of supported application protocols, must be the same or subset of QuicListenerOptions.ApplicationProtocols.
-        ApplicationProtocols = new List<SslApplicationProtocol>() { SslApplicationProtocol.Http3 },
+        ApplicationProtocols = new List<SslApplicationProtocol>() { "protocol-name" },
         // Server certificate, it can also be provided via ServerCertificateContext or ServerCertificateSelectionCallback.
         ServerCertificate = serverCertificate
     }
@@ -84,7 +84,7 @@ var listener = await QuicListener.ListenAsync(new QuicListenerOptions()
     // Listening endpoint, port 0 means any port.
     ListenEndPoint = new IPEndPoint(IPAddress.Loopback, 0),
     // List of all supported application protocols by this listener.
-    ApplicationProtocols = new List<SslApplicationProtocol>() { SslApplicationProtocol.Http3 },
+    ApplicationProtocols = new List<SslApplicationProtocol>() { "protocol-name" },
     // Callback to provide options for the incoming connections, it gets once called per each of them.
     ConnectionOptionsCallback = (_, _, _) => ValueTask.FromResult(serverConnectionOptions)
 });
@@ -130,11 +130,11 @@ var clientConnectionOptions = new QuicClientConnectionOptions()
 
     // Used to abort stream if it's not properly closed by the user.
     // See https://www.rfc-editor.org/rfc/rfc9000.html#name-application-protocol-error-
-    DefaultStreamErrorCode = 0x010b, // H3_REQUEST_REJECTED
+    DefaultStreamErrorCode = 0x0A, // Protocol-dependent error code.
 
     // Used to close the connection if it's not done by the user.
     // See https://www.rfc-editor.org/rfc/rfc9000.html#name-application-protocol-error-
-    DefaultCloseErrorCode = 0x010b, // H3_INTERNAL_ERROR
+    DefaultCloseErrorCode = 0x0B, // Protocol-dependent error code.
 
     // Optionally set limits for inbound streams.
     MaxInboundUnidirectionalStreams = 10,
@@ -144,7 +144,7 @@ var clientConnectionOptions = new QuicClientConnectionOptions()
     ClientAuthenticationOptions = new SslClientAuthenticationOptions()
     {
         // List of supported application protocols.
-        ApplicationProtocols = new List<SslApplicationProtocol>() { SslApplicationProtocol.Http3 }
+        ApplicationProtocols = new List<SslApplicationProtocol>() { "protocol-name" }
     }
 };
 
@@ -178,19 +178,19 @@ More details about how this class was designed can be found in the [`QuicConnect
 
 ### QuicStream
 
-[`QuicStream`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream?view=net-7.0) is the actual type that is used to send and receive data in QUIC protocol. It derives from ordinary [`Stream`](https://learn.microsoft.com/en-us/dotnet/api/system.io.stream?view=net-7.0) and can be used as such. But it also offers several features that are specific to QUIC protocol. Firstly, a QUIC stream can either be unidirectional or bidirectional, see [RFC 9000 - 2.1. Stream Types and Identifiers](https://www.rfc-editor.org/rfc/rfc9000.html#name-stream-types-and-identifier). A bidirectional stream is able to send and receive data on both sides, whereas unidirectional stream can only write from the initiating side and read on the accepting one. A connection can limit how many concurrent stream of each type is willing to accept, see [`QuicConnectionOptions.MaxInboundBidirectionalStreams`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnectionoptions.maxinboundbidirectionalstreams?view=net-7.0) and [`QuicConnectionOptions.MaxInboundUnidirectionalStreams`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnectionoptions.maxinboundunidirectionalstreams?view=net-7.0).
+[`QuicStream`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream?view=net-7.0) is the actual type that is used to send and receive data in QUIC protocol. It derives from ordinary [`Stream`](https://learn.microsoft.com/en-us/dotnet/api/system.io.stream?view=net-7.0) and can be used as such. But it also offers several features that are specific to QUIC protocol. Firstly, a QUIC stream can either be unidirectional or bidirectional, see [RFC 9000 - 2.1. Stream Types and Identifiers](https://www.rfc-editor.org/rfc/rfc9000.html#name-stream-types-and-identifier). A bidirectional stream is able to send and receive data on both sides, whereas unidirectional stream can only write from the initiating side and read on the accepting one. Each peer can limit how many concurrent stream of each type is willing to accept, see [`QuicConnectionOptions.MaxInboundBidirectionalStreams`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnectionoptions.maxinboundbidirectionalstreams?view=net-7.0) and [`QuicConnectionOptions.MaxInboundUnidirectionalStreams`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnectionoptions.maxinboundunidirectionalstreams?view=net-7.0).
 
-Another particularity of QUIC stream is ability to explicitly close the writing side in the middle of work with the stream, see [`CompleteWrites`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream.completewrites?view=net-7.0) or [`WriteAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream.writeasync?view=net-7.0#system-net-quic-quicstream-writeasync(system-readonlymemory((system-byte))-system-boolean-system-threading-cancellationtoken)) overload with `completeWrites` argument. The closing of the writing side lets the peer know that no more data will arrive but the peer still can continue sending (in case of a bidirectional stream). This is useful in scenarios like HTTP request/response exchange when the client sends the request and closes the writing side to let the server know that this is the end of the request content. Server is still able to send the response after that but knows that no more data will arrive from the client. And for erroneous cases, either writing or reading side of the stream can be aborted, see [`Abort`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream.abort?view=net-7.0). The behavior of the individual methods for each stream type is summarized in the following table:
+Another particularity of QUIC stream is ability to explicitly close the writing side in the middle of work with the stream, see [`CompleteWrites`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream.completewrites?view=net-7.0) or [`WriteAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream.writeasync?view=net-7.0#system-net-quic-quicstream-writeasync(system-readonlymemory((system-byte))-system-boolean-system-threading-cancellationtoken)) overload with `completeWrites` argument. The closing of the writing side lets the peer know that no more data will arrive but the peer still can continue sending (in case of a bidirectional stream). This is useful in scenarios like HTTP request/response exchange when the client sends the request and closes the writing side to let the server know that this is the end of the request content. Server is still able to send the response after that but knows that no more data will arrive from the client. And for erroneous cases, either writing or reading side of the stream can be aborted, see [`Abort`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream.abort?view=net-7.0). The behavior of the individual methods for each stream type is summarized in the following table (note that both client and server can open and accept streams):
 
-|            | client  | server  |
+|            | peer opening stream  | peer accepting stream  |
 | -          | -       | -       |
 | `CanRead`  | _bidirectional_: `true`<br/> _unidirectional_: `false` | `true`  |
 | `CanWrite` | `true`  | _bidirectional_: `true`<br/> _unidirectional_: `false` |
 | `ReadAsync` | _bidirectional_: reads data<br/> _unidirectional_: `InvalidOperationException` | reads data |
 | `WriteAsync` | sends data => server read returns the data | _bidirectional_: sends data => client read returns the data<br/> _unidirectional_: `InvalidOperationException`  |
-| `CompleteWrites` | closes writing side => server read returns 0 | _bidirectional_: closes writing side => client read returns 0<br/> _unidirectional_: - |
+| `CompleteWrites` | closes writing side => server read returns 0 | _bidirectional_: closes writing side => client read returns 0<br/> _unidirectional_: no-op |
 | `Abort(QuicAbortDirection.Read)` | _bidirectional_: [STOP_SENDING](https://www.rfc-editor.org/rfc/rfc9000.html#name-stop_sending-frames) => server write throws `QuicException(QuicError.OperationAborted)`<br/> _unidirectional_: - | [STOP_SENDING](https://www.rfc-editor.org/rfc/rfc9000.html#name-stop_sending-frames) => client write throws `QuicException(QuicError.OperationAborted)`|
-| `Abort(QuicAbortDirection.Write)` | [RESET_STREAM](https://www.rfc-editor.org/rfc/rfc9000.html#name-reset_stream-frames) => server read throws `QuicException(QuicError.OperationAborted)` | _bidirectional_: [RESET_STREAM](https://www.rfc-editor.org/rfc/rfc9000.html#name-reset_stream-frames) => client read throws `QuicException(QuicError.OperationAborted)`<br/> _unidirectional_: - |
+| `Abort(QuicAbortDirection.Write)` | [RESET_STREAM](https://www.rfc-editor.org/rfc/rfc9000.html#name-reset_stream-frames) => server read throws `QuicException(QuicError.OperationAborted)` | _bidirectional_: [RESET_STREAM](https://www.rfc-editor.org/rfc/rfc9000.html#name-reset_stream-frames) => client read throws `QuicException(QuicError.OperationAborted)`<br/> _unidirectional_: no-op |
 
 On top of these methods, `QuicStream` offers two specialized properties to get notified whenever either reading or a writing side of the stream has been closed: [`ReadsClosed`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream.readsclosed?view=net-7.0) and [`WritesClosed`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream.writesclosed?view=net-7.0). Both return `Task` that completes with its corresponding side getting closed, whether it be success or abort, in which case the `Task` will contain appropriate exception. These properties are useful in cases when the user code needs to know about a stream side getting closed without issuing call to `ReadAsync` or `WriteAsync`.
 

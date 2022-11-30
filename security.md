@@ -92,10 +92,44 @@ These changes bring .NET 7 Linux support of TLS resume on par with Windows capab
 
 ### OCSP Stapling
 
-Online Certificate Status Protocol (OCSP) Stapling is a mechanism for server to provide signed and timestamped proof (OCSP response) that the sent certificate has not been revoked, see [RFC 6961](https://www.rfc-editor.org/rfc/rfc6961). As a result, client doesn't need to contact the OCSP server itself, reducing the number of requests necessary to establish the connection as well as the load exerted on the OCSP server. And as the OCSP response needs to be signed by the certificate authority (CA), it cannot forged by the server providing the certififcate. We didn't take advantage of this TLS feature up until this release, for more details see [Issue #33377](https://github.com/dotnet/runtime/issues/33377).
+Online Certificate Status Protocol (OCSP) Stapling is a mechanism for server to provide signed and timestamped proof (OCSP response) that the sent certificate has not been revoked, see [RFC 6961](https://www.rfc-editor.org/rfc/rfc6961). As a result, client doesn't need to contact the OCSP server itself, reducing the number of requests necessary to establish the connection as well as the load exerted on the OCSP server. And as the OCSP response needs to be signed by the certificate authority (CA), it cannot be forged by the server providing the certificate. We didn't take advantage of this TLS feature until this release, for more details see [Issue #33377](https://github.com/dotnet/runtime/issues/33377).
 
 
+## Consistency across platforms
 
+We are aware, that some of the functionality provided by .NET is available only on certain platforms. But each release we try to narrow the gap a bit more. In .NET 7, we made several changes in the networking security space to improve the disparity:
+- Support for post-handshake authentication on Linux for TLS 1.3: [PR #64268](https://github.com/dotnet/runtime/pull/64268)
+- Remote certificate is now set on Windows in [`SslClientAuthenticationOptions.LocalCertificateSelectionCallback`](https://learn.microsoft.com/en-us/dotnet/api/system.net.security.sslclientauthenticationoptions.localcertificateselectioncallback?view=net-7.0): [PR #65134](https://github.com/dotnet/runtime/pull/65134)
+- Support for sending names of trusted CA in TLS handshake on OSX and Linux: [PR #65195](https://github.com/dotnet/runtime/pull/65195)
 
----
-https://learn.microsoft.com/en-us/dotnet/core/compatibility/networking/7.0/allowrenegotiation-default
+## Options for certificate validation
+
+When a client receives server's certificate, or vice-versa if client certificate is requested, the certificate is validated via [`X509Chain`](https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.x509certificates.x509chain?view=net-7.0). The validation happens always, even if [`RemoteCertificateValidationCallback`](https://learn.microsoft.com/en-us/dotnet/api/system.net.security.remotecertificatevalidationcallback?view=net-7.0) is provided, and during the validation additional certificates might get downloaded. Several issues were raised as there was no way to control this behavior. Among them were asks to completely prevent certificate download, put a timeout on it, or to provide custom store to get the certificates from. To mitigate this whole group of issues, we decided to introduce a new property `CertificateChainPolicy` on both [`SslClientAuthenticationOptions`](https://learn.microsoft.com/en-us/dotnet/api/system.net.security.sslclientauthenticationoptions?view=net-7.0) and [`SslServerAuthenticationOptions`](https://learn.microsoft.com/en-us/dotnet/api/system.net.security.sslserverauthenticationoptions?view=net-7.0). The goal of this property is to override the default behavior of [`SslStream`](https://learn.microsoft.com/en-us/dotnet/api/system.net.security.sslstream?view=net-7.0) when building the chain during [`AuthenticateAsClientAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.security.sslstream.authenticateasclientasync?view=net-7.0) / [`AuthenticateAsServerAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.security.sslstream.authenticateasserverasync?view=net-7.0) operation. In normal circumstances, [`X509ChainPolicy`](https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.x509certificates.x509chainpolicy?view=net-7.0) is constructed automatically in the background. But if this new property is specified, it will take precedence and be used instead, giving the user full control over the certificate validation process.
+
+The usage of the chain policy might look like:
+```C#
+// Client side:
+var policy = new X509ChainPolicy();
+policy.TrustMode = X509ChainTrustMode.CustomRootTrust;
+policy.ExtraStore.Add(s_ourPrivateRoot);
+policy.UrlRetrievalTimeout = TimeSpan.FromSeconds(3);
+
+var options  = new SslClientAuthenticationOptions();
+options.TargetHost = "myServer";
+options.CertificateChainPolicy = policy;
+
+var sslStream = new SslStream(transportStream);
+sslStream.AuthenticateAsClientAsync(options, cancellationToken);
+
+// Server side:
+var policy = new X509ChainPolicy();
+policy.DisableCertificateDownloads = true;
+
+var options  = new SslServerAuthenticationOptions();
+options.CertificateChainPolicy = policy;
+
+var sslStream = new SslStream(transportStream);
+sslStream.AuthenticateAsServerAsync(options, cancellationToken);
+```
+
+More info can be found the API proposal [Issue #71191](https://github.com/dotnet/runtime/issues/71191).

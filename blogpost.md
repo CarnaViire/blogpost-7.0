@@ -443,12 +443,14 @@ Most of the networking perfomance improvements in .NET 7 are covered by Stephen'
 
 ### TLS Resume
 
-Establishing new TLS connection is fairly expensive operation as it requires multiple steps and several roundtrips. In scenarios where connection to the same server is re-created very often, time consumed by the handshakes will add up. TLS offers feature to mitigate this called Session Resumption, see [RFC 5246 - 7.3.  Handshake Protocol Overview](https://www.rfc-editor.org/rfc/rfc5246.html#section-7.3) and [RFC 8446 - 2.2.  Resumption and Pre-Shared Key](https://www.rfc-editor.org/rfc/rfc8446#section-2.2). Even though the mechanics differ for different TLS versions, the end goal is the same, save a round-trip and some CPU time when re-establishing connection to a previously connected server. This feature is automatically provided by SChannel on Windows, but with OpenSSL on Linux it required several changes to enable this:
+Establishing new TLS connection is fairly expensive operation as it requires multiple steps and several round trips. In scenarios where connection to the same server is re-created very often, time consumed by the handshakes will add up. TLS offers feature to mitigate this called Session Resumption, see [RFC 5246 - 7.3.  Handshake Protocol Overview](https://www.rfc-editor.org/rfc/rfc5246.html#section-7.3) and [RFC 8446 - 2.2.  Resumption and Pre-Shared Key](https://www.rfc-editor.org/rfc/rfc8446#section-2.2). In short, during the handshake, client can send an identification of previously established TLS session and if server agrees, the security context gets re-established based on the cached data from the previous connection. Even though the mechanics differ for different TLS versions, the end goal is the same, save a round-trip and some CPU time when re-establishing connection to a previously connected server.
+This feature is automatically provided by SChannel on Windows, but with OpenSSL on Linux it required several changes to enable this:
 - Server side (stateless): [PR #57079](https://github.com/dotnet/runtime/pull/57079) and [PR #63030](https://github.com/dotnet/runtime/pull/63030)
 - Client side: [PR #64369](https://github.com/dotnet/runtime/pull/64369)
 - Cache size control: [PR #69065](https://github.com/dotnet/runtime/pull/69065)
 
-These changes bring .NET 7 Linux support of TLS resume on par with Windows capabilities.
+If caching the TLS context is not desired, it can be turned off process-wide with either environment variable "DOTNET_SYSTEM_NET_SECURITY_DISABLETLSRESUME" or via [`AppContext.SetSwitch`](https://learn.microsoft.com/en-us/dotnet/api/system.appcontext.setswitch?view=net-7.0) "System.Net.Security.TlsCacheSize".
+
 
 ### OCSP Stapling
 

@@ -24,6 +24,10 @@ Violating thread safety in .NET 6 may result in the header values being duplicat
 .NET 7 makes the header behavior more intuitive. The `HttpHeaders` collection now matches the thread-safety guarantees of a `Dictionary`:
 > The collection can support multiple readers concurrently, as long as it is not modified. In the rare case where an enumeration contends with write accesses, the collection must be locked during the entire enumeration. To allow the collection to be accessed by multiple threads for reading and writing, you must implement your own synchronization.
 
+This was achieved by the following changes:
+- A "validating read" of an invalid value does not result in the removal of the invalid value: [dotnet/runtime#67833](https://github.com/dotnet/runtime/pull/67833) (thanks [@heathbm](https://github.com/heathbm)).
+- Concurrent reads are thread-safe: [dotnet/runtime#68115](https://github.com/dotnet/runtime/pull/68115).
+
 ## Detect HTTP/2 and HTTP/3 Protocol Errors
 
 The HTTP/2 and HTTP/3 protocols define protocol-level error codes in [RFC 7540 section 7](https://www.rfc-editor.org/rfc/rfc7540#section-7) and [RFC 9114 section 8.1](https://www.rfc-editor.org/rfc/rfc9114.html#section-8.1), for example `REFUSED_STREAM (0x7)` in HTTP/2 or `H3_EXCESSIVE_LOAD (0x0107)` in HTTP/3. Unlike HTTP-status codes, this is low-level error information that is unimportant for most `HttpClient` users, but it helps in advanced HTTP/2 or HTTP/3 scenarios, notably grpc-dotnet, where distinguishing protocol errors is vital to implement [client retries](https://learn.microsoft.com/en-us/aspnet/core/grpc/retries?view=aspnetcore-7.0).
@@ -500,11 +504,11 @@ More info can be found the API proposal [Issue #71191](https://github.com/dotnet
 
 # WebSockets
 
-## Upgrade Response Details
+## WebSocket Handshake Response Details
 
-Prior to .NET 7, WebSocket's HTTP upgrade response details were hidden inside `ClientWebSocket` implementation, and all connect errors would surface as `WebSocketException` without much details beside the exception message. However, the information about response headers and status code might be important in both failure and success scenarios.
+Prior to .NET 7, server's response part of WebSocket's opening handshake (HTTP response to Upgrade request) was hidden inside `ClientWebSocket` implementation, and all handshake errors would surface as `WebSocketException` without much details beside the exception message. However, the information about HTTP response headers and status code might be important in both failure and success scenarios.
 
-In case of failure, HTTP status code can help to distinguish between retriable and non-retriable errors (e.g. server doesn't support WebSockets at all, or it was just a transient error). Headers might also contain additional information on how to handle the situation. The headers are also useful even in case of a successful WebSocket connect, e.g. they can contain token tied to a session, information related to subprotocol version, or that the server can go down soon.
+In case of failure, HTTP status code can help to distinguish between retriable and non-retriable errors (e.g. server doesn't support WebSockets at all, or it was just a transient network error). Headers might also contain additional information on how to handle the situation. The headers are useful even in case of a successful WebSocket handshake, e.g. they can contain token tied to a session, information related to subprotocol version, or that the server can go down soon.
 
 .NET 7 adds a setting [ClientWebSocketOptions.CollectHttpResponseDetails](https://learn.microsoft.com/en-us/dotnet/api/system.net.websockets.clientwebsocketoptions.collecthttpresponsedetails?view=net-7.0) that enables collecting upgrade response details in `ClientWebSocket` instance during `ClientWebSocket.ConnectAsync` call. You can later access the data using [ClientWebSocket.HttpStatusCode](https://learn.microsoft.com/en-us/dotnet/api/system.net.websockets.clientwebsocket.httpstatuscode?view=net-7.0) and [ClientWebSocket.HttpResponseHeaders](https://learn.microsoft.com/en-us/dotnet/api/system.net.websockets.clientwebsocket.httpresponseheaders?view=net-7.0) properties, even in case of `ClientWebSocket.ConnectAsync` throwing an exception. Note that in the exceptional case, the information might be unavailable, i.e. if the server never responded to the request.
 

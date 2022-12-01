@@ -1,7 +1,5 @@
 With the recent [release of .NET 7](https://devblogs.microsoft.com/dotnet/announcing-dotnet-7/), we'd like to introduce some interesting changes and additions done in the networking space. This blog post talks about .NET 7 changes in [HTTP space](#http), [new QUIC APIs](#quic), [networking security](#security) and [WebSockets](#websockets).
 
-You can find similar blog posts for previous releases here: [.NET 6 Networking Improvements](https://devblogs.microsoft.com/dotnet/dotnet-6-networking-improvements/), [.NET 5 Networking Improvements](https://devblogs.microsoft.com/dotnet/net-5-new-networking-improvements/).
-
 # HTTP
 
 ## Improved handling of connection attempt failures
@@ -614,4 +612,4 @@ The ability to multiplex WebSocket connections and HTTP requests over a single H
 
 # Final Notes
 
-We try to pick the most interesting and impactful changes in the networking space. The article doesn't contain all the changes we did, but they can be found in [dotnet/runtime](https://github.com/dotnet/runtime) repository. As usual, performance improvements are not mentioned as they get their spot in Stephens's article [Performance Improvements in .NET 7](https://devblogs.microsoft.com/dotnet/performance_improvements_in_net_7). Finally, we like to hear from you, so if you encounter an issue or have any feedback, you can file it in [our GitHub](https://github.com/dotnet/runtime/issues).
+We try to pick the most interesting and impactful changes in the networking space. The article doesn't contain all the changes we did, but they can be found in [dotnet/runtime](https://github.com/dotnet/runtime) repository. As usual, performance improvements are not mentioned as they get their spot in Stephens's article [Performance Improvements in .NET 7](https://devblogs.microsoft.com/dotnet/performance_improvements_in_net_7). We'd also like to hear from you, so if you encounter an issue or have any feedback, you can file it in [our GitHub](https://github.com/dotnet/runtime/issues). Finally, you can find similar blog posts for previous releases here: [.NET 6 Networking Improvements](https://devblogs.microsoft.com/dotnet/dotnet-6-networking-improvements/), [.NET 5 Networking Improvements](https://devblogs.microsoft.com/dotnet/net-5-new-networking-improvements/).

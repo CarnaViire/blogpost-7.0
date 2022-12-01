@@ -7,10 +7,10 @@ System.Net.Http | HTTP/3 | Done
 System.Net.Http | Connection pooling changes | Done
 System.Net.Http | Headers thread safety | Follow-up
 System.Net.Http | Protocol exceptions | Done
-System.Net.Security | Negotiate API | Follow-up
-System.Net.Security | TLS Resume | Follow-up
-System.Net.Security | SslStream compatibility gaps fix | Follow-up
-System.Net.Security | SslStream perf improvements (?) | Follow-up
+System.Net.Security | Negotiate API | Done
+System.Net.Security | TLS Resume | Done
+System.Net.Security | SslStream compatibility gaps fix | Done
+System.Net.Security | SslStream perf improvements (?) | Done
 System.Net | WebSockets over HTTP/2 | Done
 System.Net | New WebSockets APIs (Upgrage Resp Details etc) | Follow-up
 (*) System.Net.Http | Zero-byte reads |

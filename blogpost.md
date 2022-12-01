@@ -504,11 +504,11 @@ More info can be found the API proposal [Issue #71191](https://github.com/dotnet
 
 # WebSockets
 
-## Upgrade Response Details
+## WebSocket Handshake Response Details
 
-Prior to .NET 7, WebSocket's HTTP upgrade response details were hidden inside `ClientWebSocket` implementation, and all connect errors would surface as `WebSocketException` without much details beside the exception message. However, the information about response headers and status code might be important in both failure and success scenarios.
+Prior to .NET 7, server's response part of WebSocket's opening handshake (HTTP response to Upgrade request) was hidden inside `ClientWebSocket` implementation, and all handshake errors would surface as `WebSocketException` without much details beside the exception message. However, the information about HTTP response headers and status code might be important in both failure and success scenarios.
 
-In case of failure, HTTP status code can help to distinguish between retriable and non-retriable errors (e.g. server doesn't support WebSockets at all, or it was just a transient error). Headers might also contain additional information on how to handle the situation. The headers are also useful even in case of a successful WebSocket connect, e.g. they can contain token tied to a session, information related to subprotocol version, or that the server can go down soon.
+In case of failure, HTTP status code can help to distinguish between retriable and non-retriable errors (e.g. server doesn't support WebSockets at all, or it was just a transient network error). Headers might also contain additional information on how to handle the situation. The headers are useful even in case of a successful WebSocket handshake, e.g. they can contain token tied to a session, information related to subprotocol version, or that the server can go down soon.
 
 .NET 7 adds a setting [ClientWebSocketOptions.CollectHttpResponseDetails](https://learn.microsoft.com/en-us/dotnet/api/system.net.websockets.clientwebsocketoptions.collecthttpresponsedetails?view=net-7.0) that enables collecting upgrade response details in `ClientWebSocket` instance during `ClientWebSocket.ConnectAsync` call. You can later access the data using [ClientWebSocket.HttpStatusCode](https://learn.microsoft.com/en-us/dotnet/api/system.net.websockets.clientwebsocket.httpstatuscode?view=net-7.0) and [ClientWebSocket.HttpResponseHeaders](https://learn.microsoft.com/en-us/dotnet/api/system.net.websockets.clientwebsocket.httpresponseheaders?view=net-7.0) properties, even in case of `ClientWebSocket.ConnectAsync` throwing an exception. Note that in the exceptional case, the information might be unavailable, i.e. if the server never responded to the request.
 

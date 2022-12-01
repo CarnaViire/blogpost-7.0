@@ -18,6 +18,7 @@ System.Net | New WebSockets APIs (Upgrage Resp Details etc) | Follow-up
 ## Follow-up:
 
  - [ ] Single .md file
+ - [ ] Intro and conclusion
  - [ ] Add community contributor thanks to "Headers thread safety"
  - [ ] Address Tomas' comments on System.Net.Security
  - [ ] Explain Upgrade request in "New WebSockets APIs"

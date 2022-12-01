@@ -1,3 +1,7 @@
+With the recent [release of .NET 7](https://devblogs.microsoft.com/dotnet/announcing-dotnet-7/), we'd like to introduce some interesting changes and additions done in the networking space. This blog post talks about .NET 7 changes in [HTTP space](#http), [new QUIC APIs](#quic), [networking security](#security) and [WebSockets](#websockets).
+
+You can find similar blog posts for previous releases here: [.NET 6 Networking Improvements](https://devblogs.microsoft.com/dotnet/dotnet-6-networking-improvements/), [.NET 5 Networking Improvements](https://devblogs.microsoft.com/dotnet/net-5-new-networking-improvements/).
+
 # HTTP
 
 ## Improved handling of connection attempt failures
@@ -64,14 +68,14 @@ catch (HttpProtocolException pex)
 
 ## HTTP/3
 
-HTTP/3 support in `HttpClient` was already feature complete in the previous .NET release, so we mostly concentrated our efforts in this space on `System.Net.Quic` itself. Despite that we did introduce few fixes and changes in .NET 7.
+HTTP/3 support in `HttpClient` was already feature complete in the previous .NET release, so we mostly concentrated our efforts in this space on the underlying `System.Net.Quic`. Despite that, we did introduce few fixes and changes in .NET 7.
 
-The most important change is that HTTP/3 is now enabled by default ([PR #73153](https://github.com/dotnet/runtime/pull/73153)). It doesn't mean that all HTTP requests will from now on prefer HTTP/3, but in certain cases they might upgrade to it. For it to happen, the request must opt into version upgrade via [`HttpRequestMessage.VersionPolicy`](https://learn.microsoft.com/cs-cz/dotnet/api/system.net.http.httprequestmessage.versionpolicy?view=net-7.0) set to `RequestVersionOrHigher`. Then, if the server announces HTTP/3 authority in `Alt-Svc` header, `HttpClient` will use it for further requests, see [RFC 9114 - 3.1.1. HTTP Alternative Services](https://www.rfc-editor.org/rfc/rfc9114.html#name-http-alternative-services).
+The most important change is that HTTP/3 is now enabled by default ([PR #73153](https://github.com/dotnet/runtime/pull/73153)). It doesn't mean that all HTTP requests will prefer HTTP/3 from now on, but in certain cases they might upgrade to it. For it to happen, the request must opt into version upgrade via [`HttpRequestMessage.VersionPolicy`](https://learn.microsoft.com/cs-cz/dotnet/api/system.net.http.httprequestmessage.versionpolicy?view=net-7.0) set to `RequestVersionOrHigher`. Then, if the server announces HTTP/3 authority in `Alt-Svc` header, `HttpClient` will use it for further requests, see [RFC 9114 - 3.1.1. HTTP Alternative Services](https://www.rfc-editor.org/rfc/rfc9114.html#name-http-alternative-services).
 
 To name a few other interesting changes:
-- HTTP telemetry was extended to cover HTTP/3 as well - [Issue #40896](https://github.com/dotnet/runtime/issues/40896).
-- Improved exception details for if QUIC connection cannot be established - [Issue #70949](https://github.com/dotnet/runtime/issues/70949)
-- Proper usage of Host header for SNI for HTTP/3 - [Issue #57169](https://github.com/dotnet/runtime/issues/57169)
+- HTTP telemetry was extended to cover HTTP/3 - [Issue #40896](https://github.com/dotnet/runtime/issues/40896).
+- Exception details were improved in case QUIC connection cannot be established - [Issue #70949](https://github.com/dotnet/runtime/issues/70949)
+- Proper usage of Host header for Server Name Identification (SNI) was fixed - [Issue #57169](https://github.com/dotnet/runtime/issues/57169)
 
 
 
@@ -79,15 +83,15 @@ To name a few other interesting changes:
 
 QUIC is a new, transport layer protocol. It has been recently standardized in [RFC 9000](https://www.rfc-editor.org/rfc/rfc9000.html). It uses UDP as an underlying protocol and it's inherently secure as it mandates TLS 1.3 usage, see [RFC 9001](https://www.rfc-editor.org/rfc/rfc9001.html). Another interesting difference from well-known transport protocols such as TCP and UDP is that it has stream multiplexing built-in on the transport layer. This allows having multiple, concurrent, independent data streams that do not affect each other.
 
-QUIC itself doesn't define any semantics for the exchanged data as it's a transport protocol but it's used in application layer protocols. For example in [HTTP/3](https://www.rfc-editor.org/rfc/rfc9114.html) or in [SMB over QUIC](https://learn.microsoft.com/en-us/windows-server/storage/file-server/smb-over-quic). It can also be used for any custom defined protocol.
+QUIC itself doesn't define any semantics for the exchanged data as it's a transport protocol. It's rather used in application layer protocols, for example in [HTTP/3](https://www.rfc-editor.org/rfc/rfc9114.html) or in [SMB over QUIC](https://learn.microsoft.com/en-us/windows-server/storage/file-server/smb-over-quic). It can also be used for any custom defined protocol.
 
-The protocol offers many advantages over TCP with TLS. For example, faster connection establishment as it doesn't require as many round trips as TCP with TLS on top. Or avoidance of head-of-line blocking problem where one lost packet doesn't block data of all the other streams. On the other hand, there are disadvantages that come with using QUIC. As it is a new protocol, its adoption is still growing and is limited. Apart from that, QUIC traffic might be even blocked by some networking components.
+The protocol offers many advantages over TCP with TLS. For instance, faster connection establishment as it doesn't require as many round trips as TCP with TLS on top. Or avoidance of head-of-line blocking problem where one lost packet doesn't block data of all the other streams. On the other hand, there are disadvantages that come with using QUIC. As it is a new protocol, its adoption is still growing and is limited. Apart from that, QUIC traffic might be even blocked by some networking components.
 
 ## QUIC in .NET
 
-We introduced QUIC implementation in .NET 5 in `System.Net.Quic` library. However up until now, the library was strictly internal and served only for own implementation of HTTP/3. With the release of .NET 7, we're making the library public and we're exposing its APIs. Since we had only `HttpClient` and Kestrel as consumers of the APIs for this release, we decided to keep them as [preview feature](https://github.com/dotnet/designs/blob/main/accepted/2021/preview-features/preview-features.md). It gives us ability to tweak the API in the next release before we settle on the final shape.
+We introduced QUIC implementation in .NET 5 in `System.Net.Quic` library. However, up until now the library was strictly internal and served only for own implementation of HTTP/3. With the release of .NET 7, we're making the library public and we're exposing its APIs. Since we had only `HttpClient` and Kestrel as consumers of the APIs for this release, we decided to keep them as [preview feature](https://github.com/dotnet/designs/blob/main/accepted/2021/preview-features/preview-features.md). It gives us ability to tweak the API in the next release before we settle on the final shape.
 
-From the implementation perspective, `System.Net.Quic` depends on [MsQuic](https://github.com/microsoft/msquic), native implementation of QUIC protocol. As a result, `System.Net.Quic` platform support and dependencies are inherited from MsQuic and documented in [HTTP/3 Platform dependencies](https://learn.microsoft.com/en-us/dotnet/core/extensions/httpclient-http3#platform-dependencies). In short, MsQuic library is shipped as part of .NET for Windows, but for Linux `libmsquic` must be manually installed via a package manager. It is still possible to build MsQuic manually, whether against SChannel or OpenSSL, and use it with `System.Net.Quic`. However, these scenarios are not part of our testing matrix and unforeseen problems might occur.
+From the implementation perspective, `System.Net.Quic` depends on [MsQuic](https://github.com/microsoft/msquic), native implementation of QUIC protocol. As a result, `System.Net.Quic` platform support and dependencies are inherited from MsQuic and documented in [HTTP/3 Platform dependencies](https://learn.microsoft.com/en-us/dotnet/core/extensions/httpclient-http3#platform-dependencies). In short, MsQuic library is shipped as part of .NET for Windows. But for Linux, `libmsquic` must be manually installed via an appropriate package manager. For the other platforms, it is still possible to build MsQuic manually, whether against SChannel or OpenSSL, and use it with `System.Net.Quic`. However, these scenarios are not part of our testing matrix and unforeseen problems might occur.
 
 ## API Overview
 
@@ -116,11 +120,11 @@ else
     // Fallback/Error
 }
 ```
-Note that at the moment, both these properties are in sync and will report the same value, but that might change in the future. So we recommend to check [`QuicListener.IsSupported`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quiclistener?view=net-7.0) for server-scenarios and [`QuicConnection.IsSupported`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection.issupported?view=net-7.0) for the client ones.
+Note that, at the moment both these properties are in sync and will report the same value, but that might change in the future. So we recommend to check [`QuicListener.IsSupported`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quiclistener.issupported?view=net-7.0) for server-scenarios and [`QuicConnection.IsSupported`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection.issupported?view=net-7.0) for the client ones.
 
 ### QuicListener
 
-[`QuicListener`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quiclistener?view=net-7.0) represents a server side class that accepts incoming connections from the clients. The listener is constructed and started with a static method [`QuicListener.ListenAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quiclistener.listenasync?view=net-7.0). The method accepts an instance of [`QuicListenerOptions`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quiclisteneroptions?view=net-7.0) class with all the settings necessary to start the listener and accept incoming connections. After that, listener is ready to hand out connections via [`AcceptConnectionAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quiclistener.acceptconnectionasync?view=net-7.0). Connections returned by this method are always fully connected, meaning that the TLS handshake is finished and the connection is ready to be used. Finally to stop listening and release all resources, [`DisposeAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quiclistener.disposeasync?view=net-7.0) must be called.
+[`QuicListener`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quiclistener?view=net-7.0) represents a server side class that accepts incoming connections from the clients. The listener is constructed and started with a static method [`QuicListener.ListenAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quiclistener.listenasync?view=net-7.0). The method accepts an instance of [`QuicListenerOptions`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quiclisteneroptions?view=net-7.0) class with all the settings necessary to start the listener and accept incoming connections. After that, listener is ready to hand out connections via [`AcceptConnectionAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quiclistener.acceptconnectionasync?view=net-7.0). Connections returned by this method are always fully connected, meaning that the TLS handshake is finished and the connection is ready to be used. Finally, to stop listening and release all resources, [`DisposeAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quiclistener.disposeasync?view=net-7.0) must be called.
 
 The sample usage of `QuicListener`:
 ```C#
@@ -133,8 +137,8 @@ if (!QuicListener.IsSupported)
     return;
 }
 
-// We want the same configuration for each incoming connection, so we prepare the connection option upfront and reuse them.
-// This represents the minimal configuration necessary to accept a connection.
+// We want the same configuration for each incoming connection, so we prepare the connection options upfront and reuse them.
+// This represents the minimal configuration necessary.
 var serverConnectionOptions = new QuicServerConnectionOptions()
 {
     // Used to abort stream if it's not properly closed by the user.
@@ -162,7 +166,7 @@ var listener = await QuicListener.ListenAsync(new QuicListenerOptions()
     ListenEndPoint = new IPEndPoint(IPAddress.Loopback, 0),
     // List of all supported application protocols by this listener.
     ApplicationProtocols = new List<SslApplicationProtocol>() { "protocol-name" },
-    // Callback to provide options for the incoming connections, it gets once called per each of them.
+    // Callback to provide options for the incoming connections, it gets called once per each connection.
     ConnectionOptionsCallback = (_, _, _) => ValueTask.FromResult(serverConnectionOptions)
 });
 
@@ -184,9 +188,9 @@ More details about how this class was designed can be found in the [`QuicListene
 
 ### QuicConnection
 
-[`QuicConnection`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection?view=net-7.0) is a class used for both server and client side QUIC connections. Server side connections are created internally by the listener and handed out via [`QuicListener.AcceptConnectionAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quiclistener.acceptconnectionasync?view=net-7.0). Client side connections must be opened and connected to the server. As with the listener, there's a static method [`QuicConnection.ConnectAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection.connectasync?view=net-7.0) that instantiates and connects the connection. It accepts an instance of [`QuicClientConnectionOptions`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicclientconnectionoptions?view=net-7.0), an analogous class to [`QuicServerConnectionOptions`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicserverconnectionoptions?view=net-7.0) returned with [`QuicListenerOptions.ConnectionOptionsCallback`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quiclisteneroptions.connectionoptionscallback?view=net-7.0). After that, the work with the connection doesn't differ between client and server. It can open outgoing streams and accept incoming ones. It also provides properties with information about the connection like [`LocalEndPoint`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection.localendpoint?view=net-7.0), [`RemoteEndPoint`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection.remoteendpoint?view=net-7.0), or [`RemoteCertificate`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection.remotecertificate?view=net-7.0).
+[`QuicConnection`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection?view=net-7.0) is a class used for both server and client side QUIC connections. Server side connections are created internally by the listener and handed out via [`QuicListener.AcceptConnectionAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quiclistener.acceptconnectionasync?view=net-7.0). Client side connections must be opened and connected to the server. As with the listener, there's a static method [`QuicConnection.ConnectAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection.connectasync?view=net-7.0) that instantiates and connects the connection. It accepts an instance of [`QuicClientConnectionOptions`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicclientconnectionoptions?view=net-7.0), an analogous class to [`QuicServerConnectionOptions`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicserverconnectionoptions?view=net-7.0). After that, the work with the connection doesn't differ between client and server. It can open outgoing streams and accept incoming ones. It also provides properties with information about the connection, like [`LocalEndPoint`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection.localendpoint?view=net-7.0), [`RemoteEndPoint`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection.remoteendpoint?view=net-7.0), or [`RemoteCertificate`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection.remotecertificate?view=net-7.0).
 
-When the work with the connection is done, it needs to be closed and disposed. However, QUIC protocol mandates using an application layer code for immediate closure, see [RFC 9000 - 10.2. Immediate Close](https://www.rfc-editor.org/rfc/rfc9000.html#name-immediate-close). For that, [`CloseAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection.closeasync?view=net-7.0) with application layer code can be called or if not, [`DisposeAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection.disposeasync?view=net-7.0) will use the code provided in [`QuicConnectionOptions.DefaultCloseErrorCode`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnectionoptions.defaultcloseerrorcode?view=net-7.0#system-net-quic-quicconnectionoptions-defaultcloseerrorcode). Either way, [`DisposeAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection.disposeasync?view=net-7.0) must be called at the end of the work with the connection to fully release all the associated resources.
+When the work with the connection is done, it needs to be closed and disposed. QUIC protocol mandates using an application layer code for immediate closure, see [RFC 9000 - 10.2. Immediate Close](https://www.rfc-editor.org/rfc/rfc9000.html#name-immediate-close). For that, [`CloseAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection.closeasync?view=net-7.0) with application layer code can be called or if not, [`DisposeAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection.disposeasync?view=net-7.0) will use the code provided in [`QuicConnectionOptions.DefaultCloseErrorCode`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnectionoptions.defaultcloseerrorcode?view=net-7.0#system-net-quic-quicconnectionoptions-defaultcloseerrorcode). Either way, [`DisposeAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnection.disposeasync?view=net-7.0) must be called at the end of the work with the connection to fully release all the associated resources.
 
 The sample usage of `QuicConnection`:
 ```C#
@@ -245,7 +249,7 @@ while (isRunning)
 }
 
 // Close the connection with the custom code.
-await connection.CloseAsync(789);
+await connection.CloseAsync(0x0C);
 
 // Dispose the connection.
 await connection.DisposeAsync();
@@ -255,30 +259,34 @@ More details about how this class was designed can be found in the [`QuicConnect
 
 ### QuicStream
 
-[`QuicStream`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream?view=net-7.0) is the actual type that is used to send and receive data in QUIC protocol. It derives from ordinary [`Stream`](https://learn.microsoft.com/en-us/dotnet/api/system.io.stream?view=net-7.0) and can be used as such. But it also offers several features that are specific to QUIC protocol. Firstly, a QUIC stream can either be unidirectional or bidirectional, see [RFC 9000 - 2.1. Stream Types and Identifiers](https://www.rfc-editor.org/rfc/rfc9000.html#name-stream-types-and-identifier). A bidirectional stream is able to send and receive data on both sides, whereas unidirectional stream can only write from the initiating side and read on the accepting one. Each peer can limit how many concurrent stream of each type is willing to accept, see [`QuicConnectionOptions.MaxInboundBidirectionalStreams`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnectionoptions.maxinboundbidirectionalstreams?view=net-7.0) and [`QuicConnectionOptions.MaxInboundUnidirectionalStreams`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnectionoptions.maxinboundunidirectionalstreams?view=net-7.0).
+[`QuicStream`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream?view=net-7.0) is the actual type that is used to send and receive data in QUIC protocol. It derives from ordinary [`Stream`](https://learn.microsoft.com/en-us/dotnet/api/system.io.stream?view=net-7.0) and can be used as such, but it also offers several features that are specific to QUIC protocol. Firstly, a QUIC stream can either be unidirectional or bidirectional, see [RFC 9000 - 2.1. Stream Types and Identifiers](https://www.rfc-editor.org/rfc/rfc9000.html#name-stream-types-and-identifier). A bidirectional stream is able to send and receive data on both sides, whereas unidirectional stream can only write from the initiating side and read on the accepting one. Each peer can limit how many concurrent stream of each type is willing to accept, see [`QuicConnectionOptions.MaxInboundBidirectionalStreams`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnectionoptions.maxinboundbidirectionalstreams?view=net-7.0) and [`QuicConnectionOptions.MaxInboundUnidirectionalStreams`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicconnectionoptions.maxinboundunidirectionalstreams?view=net-7.0).
 
-Another particularity of QUIC stream is ability to explicitly close the writing side in the middle of work with the stream, see [`CompleteWrites`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream.completewrites?view=net-7.0) or [`WriteAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream.writeasync?view=net-7.0#system-net-quic-quicstream-writeasync(system-readonlymemory((system-byte))-system-boolean-system-threading-cancellationtoken)) overload with `completeWrites` argument. The closing of the writing side lets the peer know that no more data will arrive but the peer still can continue sending (in case of a bidirectional stream). This is useful in scenarios like HTTP request/response exchange when the client sends the request and closes the writing side to let the server know that this is the end of the request content. Server is still able to send the response after that but knows that no more data will arrive from the client. And for erroneous cases, either writing or reading side of the stream can be aborted, see [`Abort`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream.abort?view=net-7.0). The behavior of the individual methods for each stream type is summarized in the following table (note that both client and server can open and accept streams):
+Another particularity of QUIC stream is ability to explicitly close the writing side in the middle of work with the stream, see [`CompleteWrites`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream.completewrites?view=net-7.0) or [`WriteAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream.writeasync?view=net-7.0#system-net-quic-quicstream-writeasync(system-readonlymemory((system-byte))-system-boolean-system-threading-cancellationtoken)) overload with `completeWrites` argument. Closing of the writing side lets the peer know that no more data will arrive, yet the peer still can continue sending (in case of a bidirectional stream). This is useful in scenarios like HTTP request/response exchange when the client sends the request and closes the writing side to let the server know that this is the end of the request content. Server is still able to send the response after that, but knows that no more data will arrive from the client. And for erroneous cases, either writing or reading side of the stream can be aborted, see [`Abort`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream.abort?view=net-7.0). The behavior of the individual methods for each stream type is summarized in the following table (note that both client and server can open and accept streams):
 
 |            | peer opening stream  | peer accepting stream  |
 | -          | -       | -       |
 | `CanRead`  | _bidirectional_: `true`<br/> _unidirectional_: `false` | `true`  |
 | `CanWrite` | `true`  | _bidirectional_: `true`<br/> _unidirectional_: `false` |
 | `ReadAsync` | _bidirectional_: reads data<br/> _unidirectional_: `InvalidOperationException` | reads data |
-| `WriteAsync` | sends data => server read returns the data | _bidirectional_: sends data => client read returns the data<br/> _unidirectional_: `InvalidOperationException`  |
-| `CompleteWrites` | closes writing side => server read returns 0 | _bidirectional_: closes writing side => client read returns 0<br/> _unidirectional_: no-op |
-| `Abort(QuicAbortDirection.Read)` | _bidirectional_: [STOP_SENDING](https://www.rfc-editor.org/rfc/rfc9000.html#name-stop_sending-frames) => server write throws `QuicException(QuicError.OperationAborted)`<br/> _unidirectional_: - | [STOP_SENDING](https://www.rfc-editor.org/rfc/rfc9000.html#name-stop_sending-frames) => client write throws `QuicException(QuicError.OperationAborted)`|
-| `Abort(QuicAbortDirection.Write)` | [RESET_STREAM](https://www.rfc-editor.org/rfc/rfc9000.html#name-reset_stream-frames) => server read throws `QuicException(QuicError.OperationAborted)` | _bidirectional_: [RESET_STREAM](https://www.rfc-editor.org/rfc/rfc9000.html#name-reset_stream-frames) => client read throws `QuicException(QuicError.OperationAborted)`<br/> _unidirectional_: no-op |
+| `WriteAsync` | sends data => peer read returns the data | _bidirectional_: sends data => peer read returns the data<br/> _unidirectional_: `InvalidOperationException`  |
+| `CompleteWrites` | closes writing side => peer read returns 0 | _bidirectional_: closes writing side => peer read returns 0<br/> _unidirectional_: no-op |
+| `Abort(QuicAbortDirection.Read)` | _bidirectional_: [STOP_SENDING](https://www.rfc-editor.org/rfc/rfc9000.html#name-stop_sending-frames) => peer write throws `QuicException(QuicError.OperationAborted)`<br/> _unidirectional_: no-op | [STOP_SENDING](https://www.rfc-editor.org/rfc/rfc9000.html#name-stop_sending-frames) => peer write throws `QuicException(QuicError.OperationAborted)`|
+| `Abort(QuicAbortDirection.Write)` | [RESET_STREAM](https://www.rfc-editor.org/rfc/rfc9000.html#name-reset_stream-frames) => peer read throws `QuicException(QuicError.OperationAborted)` | _bidirectional_: [RESET_STREAM](https://www.rfc-editor.org/rfc/rfc9000.html#name-reset_stream-frames) => peer read throws `QuicException(QuicError.OperationAborted)`<br/> _unidirectional_: no-op |
 
-On top of these methods, `QuicStream` offers two specialized properties to get notified whenever either reading or a writing side of the stream has been closed: [`ReadsClosed`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream.readsclosed?view=net-7.0) and [`WritesClosed`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream.writesclosed?view=net-7.0). Both return `Task` that completes with its corresponding side getting closed, whether it be success or abort, in which case the `Task` will contain appropriate exception. These properties are useful in cases when the user code needs to know about a stream side getting closed without issuing call to `ReadAsync` or `WriteAsync`.
+On top of these methods, `QuicStream` offers two specialized properties to get notified whenever either reading or writing side of the stream has been closed: [`ReadsClosed`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream.readsclosed?view=net-7.0) and [`WritesClosed`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream.writesclosed?view=net-7.0). Both return a `Task` that completes with its corresponding side getting closed, whether it be success or abort, in which case the `Task` will contain appropriate exception. These properties are useful when the user code needs to know about stream side getting closed without issuing call to `ReadAsync` or `WriteAsync`.
 
-Finally, when the work with the stream is done, it needs to be disposed with [`DisposeAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream.disposeasync?view=net-7.0). The dispose will make sure that both reading and/or writing side - depending on the stream type - is closed. If stream hasn't been properly read till the end, dispose will issue an equivalent of `Abort(QuicAbortDirection.Read)`. However if stream writing side hasn't been closed, it will be gracefully closed as it would be with `CompleteWrites`. The reason for this difference is to make sure that scenarios working with an ordinary `Stream` behave as expected and lead to a successful path. Consider the following example:
+Finally, when the work with the stream is done, it needs to be disposed with [`DisposeAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.quic.quicstream.disposeasync?view=net-7.0). The dispose will make sure that both reading and/or writing side - depending on the stream type - is closed. If stream hasn't been properly read till the end, dispose will issue an equivalent of `Abort(QuicAbortDirection.Read)`. However, if stream writing side hasn't been closed, it will be gracefully closed as it would be with `CompleteWrites`. The reason for this difference is to make sure that scenarios working with an ordinary `Stream` behave as expected and lead to a successful path. Consider the following example:
 ```C#
+// Work done with all different types of streams.
 async Task WorkWithStream(Stream stream)
 {
+    // This will dispose the stream at the end of the scope.
     await using (stream)
     {
+        // Simple echo, read data and send them back.
         byte[] buffer = new byte[1024];
         int count = 0;
+        // The loop stops when read returns 0 bytes as is common for all streams.
         while ((count = await stream.ReadAsync(buffer)) > 0)
         {
             await stream.WriteAsync(buffer.AsMemory(0, count));
@@ -286,6 +294,7 @@ async Task WorkWithStream(Stream stream)
     }
 }
 
+// Open a QuicStream and pass to the common method.
 var quicStream = await connection.OpenOutboundStreamAsync(QuicStreamType.Bidirectional);
 await WorkWithStream(quicStream);
 
@@ -347,7 +356,7 @@ async ValueTask WritesClosedAsync(QuicStream stream)
     }
     catch (Exception ex)
     {
-        // Handle aborted writing side ...
+        // Handle peer aborting our writing side ...
     }
 }
 
@@ -358,7 +367,7 @@ More details about how this class was designed can be found in the [`QuicStream`
 
 ## Future
 
-As `System.Net.Quic` is newly made public and we have only limited usages, we'll appreciate any bug reports or feedback on the API shape. Thanks to APIs being in preview mode, we still have a chance to tweak them for .NET 8 based on the feedback we get. Issues can be filed in [dotnet/runtime](https://github.com/dotnet/runtime) repository.
+As `System.Net.Quic` is newly made public and we have only limited usages, we'll appreciate any bug reports or insights on the API shape. Thanks to APIs being in preview mode, we still have a chance to tweak them for .NET 8 based on the feedback we get. Issues can be filed in [dotnet/runtime](https://github.com/dotnet/runtime) repository.
 
 
 
@@ -441,36 +450,9 @@ Once the authenticated session is established, the `NegotiateAuthentication` ins
 This change was done as well as this part of the article was written by a community contributor [@filipnavara](https://github.com/filipnavara).
 
 
-## Performance
-
-Most of the networking perfomance improvements in .NET 7 are covered by Stephen's article [Performance Improvements in .NET 7 - Networking](https://devblogs.microsoft.com/dotnet/performance_improvements_in_net_7/#networking), but some of the security ones are worth mentioning again.
-
-### TLS Resume
-
-Establishing new TLS connection is fairly expensive operation as it requires multiple steps and several round trips. In scenarios where connection to the same server is re-created very often, time consumed by the handshakes will add up. TLS offers feature to mitigate this called Session Resumption, see [RFC 5246 - 7.3.  Handshake Protocol Overview](https://www.rfc-editor.org/rfc/rfc5246.html#section-7.3) and [RFC 8446 - 2.2.  Resumption and Pre-Shared Key](https://www.rfc-editor.org/rfc/rfc8446#section-2.2). In short, during the handshake, client can send an identification of previously established TLS session and if server agrees, the security context gets re-established based on the cached data from the previous connection. Even though the mechanics differ for different TLS versions, the end goal is the same, save a round-trip and some CPU time when re-establishing connection to a previously connected server.
-This feature is automatically provided by SChannel on Windows, but with OpenSSL on Linux it required several changes to enable this:
-- Server side (stateless): [PR #57079](https://github.com/dotnet/runtime/pull/57079) and [PR #63030](https://github.com/dotnet/runtime/pull/63030)
-- Client side: [PR #64369](https://github.com/dotnet/runtime/pull/64369)
-- Cache size control: [PR #69065](https://github.com/dotnet/runtime/pull/69065)
-
-If caching the TLS context is not desired, it can be turned off process-wide with either environment variable "DOTNET_SYSTEM_NET_SECURITY_DISABLETLSRESUME" or via [`AppContext.SetSwitch`](https://learn.microsoft.com/en-us/dotnet/api/system.appcontext.setswitch?view=net-7.0) "System.Net.Security.TlsCacheSize".
-
-
-### OCSP Stapling
-
-Online Certificate Status Protocol (OCSP) Stapling is a mechanism for server to provide signed and timestamped proof (OCSP response) that the sent certificate has not been revoked, see [RFC 6961](https://www.rfc-editor.org/rfc/rfc6961). As a result, client doesn't need to contact the OCSP server itself, reducing the number of requests necessary to establish the connection as well as the load exerted on the OCSP server. And as the OCSP response needs to be signed by the certificate authority (CA), it cannot be forged by the server providing the certificate. We didn't take advantage of this TLS feature until this release, for more details see [Issue #33377](https://github.com/dotnet/runtime/issues/33377).
-
-
-## Consistency across platforms
-
-We are aware, that some of the functionality provided by .NET is available only on certain platforms. But each release we try to narrow the gap a bit more. In .NET 7, we made several changes in the networking security space to improve the disparity:
-- Support for post-handshake authentication on Linux for TLS 1.3: [PR #64268](https://github.com/dotnet/runtime/pull/64268)
-- Remote certificate is now set on Windows in [`SslClientAuthenticationOptions.LocalCertificateSelectionCallback`](https://learn.microsoft.com/en-us/dotnet/api/system.net.security.sslclientauthenticationoptions.localcertificateselectioncallback?view=net-7.0): [PR #65134](https://github.com/dotnet/runtime/pull/65134)
-- Support for sending names of trusted CA in TLS handshake on OSX and Linux: [PR #65195](https://github.com/dotnet/runtime/pull/65195)
-
 ## Options for certificate validation
 
-When a client receives server's certificate, or vice-versa if client certificate is requested, the certificate is validated via [`X509Chain`](https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.x509certificates.x509chain?view=net-7.0). The validation happens always, even if [`RemoteCertificateValidationCallback`](https://learn.microsoft.com/en-us/dotnet/api/system.net.security.remotecertificatevalidationcallback?view=net-7.0) is provided, and during the validation additional certificates might get downloaded. Several issues were raised as there was no way to control this behavior. Among them were asks to completely prevent certificate download, put a timeout on it, or to provide custom store to get the certificates from. To mitigate this whole group of issues, we decided to introduce a new property `CertificateChainPolicy` on both [`SslClientAuthenticationOptions`](https://learn.microsoft.com/en-us/dotnet/api/system.net.security.sslclientauthenticationoptions?view=net-7.0) and [`SslServerAuthenticationOptions`](https://learn.microsoft.com/en-us/dotnet/api/system.net.security.sslserverauthenticationoptions?view=net-7.0). The goal of this property is to override the default behavior of [`SslStream`](https://learn.microsoft.com/en-us/dotnet/api/system.net.security.sslstream?view=net-7.0) when building the chain during [`AuthenticateAsClientAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.security.sslstream.authenticateasclientasync?view=net-7.0) / [`AuthenticateAsServerAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.security.sslstream.authenticateasserverasync?view=net-7.0) operation. In normal circumstances, [`X509ChainPolicy`](https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.x509certificates.x509chainpolicy?view=net-7.0) is constructed automatically in the background. But if this new property is specified, it will take precedence and be used instead, giving the user full control over the certificate validation process.
+When a client receives server's certificate, or vice-versa if client certificate is requested, the certificate is validated via [`X509Chain`](https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.x509certificates.x509chain?view=net-7.0). The validation happens always, even if [`RemoteCertificateValidationCallback`](https://learn.microsoft.com/en-us/dotnet/api/system.net.security.remotecertificatevalidationcallback?view=net-7.0) is provided, and additional certificates might get downloaded during the validation. Several issues were raised as there was no way to control this behavior. Among them were asks to completely prevent certificate download, put a timeout on it, or to provide custom store to get the certificates from. To mitigate this whole group of issues, we decided to introduce a new property `CertificateChainPolicy` on both [`SslClientAuthenticationOptions`](https://learn.microsoft.com/en-us/dotnet/api/system.net.security.sslclientauthenticationoptions?view=net-7.0) and [`SslServerAuthenticationOptions`](https://learn.microsoft.com/en-us/dotnet/api/system.net.security.sslserverauthenticationoptions?view=net-7.0). The goal of this property is to override the default behavior of [`SslStream`](https://learn.microsoft.com/en-us/dotnet/api/system.net.security.sslstream?view=net-7.0) when building the chain during [`AuthenticateAsClientAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.security.sslstream.authenticateasclientasync?view=net-7.0) / [`AuthenticateAsServerAsync`](https://learn.microsoft.com/en-us/dotnet/api/system.net.security.sslstream.authenticateasserverasync?view=net-7.0) operation. In normal circumstances, [`X509ChainPolicy`](https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.x509certificates.x509chainpolicy?view=net-7.0) is constructed automatically in the background. But if this new property is specified, it will take precedence and be used instead, giving the user full control over the certificate validation process.
 
 The usage of the chain policy might look like:
 ```C#
@@ -499,6 +481,32 @@ sslStream.AuthenticateAsServerAsync(options, cancellationToken);
 ```
 
 More info can be found the API proposal [Issue #71191](https://github.com/dotnet/runtime/issues/71191).
+
+## Performance
+
+Most of the networking perfomance improvements in .NET 7 are covered by Stephen's article [Performance Improvements in .NET 7 - Networking](https://devblogs.microsoft.com/dotnet/performance_improvements_in_net_7/#networking), but some of the security ones are worth mentioning again.
+
+### TLS Resume
+
+Establishing new TLS connection is fairly expensive operation as it requires multiple steps and several round trips. In scenarios where connection to the same server is re-created very often, time consumed by the handshakes will add up. TLS offers feature to mitigate this called Session Resumption, see [RFC 5246 - 7.3.  Handshake Protocol Overview](https://www.rfc-editor.org/rfc/rfc5246.html#section-7.3) and [RFC 8446 - 2.2.  Resumption and Pre-Shared Key](https://www.rfc-editor.org/rfc/rfc8446#section-2.2). In short, during the handshake, client can send an identification of previously established TLS session and if server agrees, the security context gets re-established based on the cached data from the previous connection. Even though the mechanics differ for different TLS versions, the end goal is the same, save a round-trip and some CPU time when re-establishing connection to a previously connected server.
+This feature is automatically provided by SChannel on Windows, but with OpenSSL on Linux it required several changes to enable this:
+- Server side (stateless): [PR #57079](https://github.com/dotnet/runtime/pull/57079) and [PR #63030](https://github.com/dotnet/runtime/pull/63030)
+- Client side: [PR #64369](https://github.com/dotnet/runtime/pull/64369)
+- Cache size control: [PR #69065](https://github.com/dotnet/runtime/pull/69065)
+
+If caching the TLS context is not desired, it can be turned off process-wide with either environment variable "DOTNET_SYSTEM_NET_SECURITY_DISABLETLSRESUME" or via [`AppContext.SetSwitch`](https://learn.microsoft.com/en-us/dotnet/api/system.appcontext.setswitch?view=net-7.0) "System.Net.Security.TlsCacheSize".
+
+### OCSP Stapling
+
+Online Certificate Status Protocol (OCSP) Stapling is a mechanism for server to provide signed and timestamped proof (OCSP response) that the sent certificate has not been revoked, see [RFC 6961](https://www.rfc-editor.org/rfc/rfc6961). As a result, client doesn't need to contact the OCSP server itself, reducing the number of requests necessary to establish the connection as well as the load exerted on the OCSP server. And as the OCSP response needs to be signed by the certificate authority (CA), it cannot be forged by the server providing the certificate. We didn't take advantage of this TLS feature until this release, for more details see [Issue #33377](https://github.com/dotnet/runtime/issues/33377).
+
+
+## Consistency across platforms
+
+We are aware, that some of the functionality provided by .NET is available only on certain platforms. But each release we try to narrow the gap a bit more. In .NET 7, we made several changes in the networking security space to improve the disparity:
+- Support for post-handshake authentication on Linux for TLS 1.3: [PR #64268](https://github.com/dotnet/runtime/pull/64268)
+- Remote certificate is now set on Windows in [`SslClientAuthenticationOptions.LocalCertificateSelectionCallback`](https://learn.microsoft.com/en-us/dotnet/api/system.net.security.sslclientauthenticationoptions.localcertificateselectioncallback?view=net-7.0): [PR #65134](https://github.com/dotnet/runtime/pull/65134)
+- Support for sending names of trusted CA in TLS handshake on OSX and Linux: [PR #65195](https://github.com/dotnet/runtime/pull/65195)
 
 
 
@@ -603,3 +611,7 @@ The combination of `HttpVersion.Version11` and `HttpVersionPolicy.RequestVersion
 By default, `HttpVersion = HttpVersion.Version11` and `HttpVersionPolicy = HttpVersionPolicy.RequestVersionOrLower` are set, meaning that only HTTP/1.1 will be used.
 
 The ability to multiplex WebSocket connections and HTTP requests over a single HTTP/2 connection is a crucial part of this feature. For it to work as expected, you need to pass and reuse the same `HttpMessageInvoker` instance (e.g. `HttpClient`) from your code when calling `ConnectAsync`, i.e. use [ClientWebSocket.ConnectAsync(Uri, HttpMessageInvoker, CancellationToken)](https://learn.microsoft.com/en-us/dotnet/api/system.net.websockets.clientwebsocket.connectasync?view=net-7.0#system-net-websockets-clientwebsocket-connectasync(system-uri-system-net-http-httpmessageinvoker-system-threading-cancellationtoken)) overload. This will reuse the connection pool within the `HttpMessageInvoker` instance for the multiplexing.
+
+# Final Notes
+
+We try to pick the most interesting and impactful changes in the networking space. The article doesn't contain all the changes we did, but they can be found in [dotnet/runtime](https://github.com/dotnet/runtime) repository. As usual, performance improvements are not mentioned as they get their spot in Stephens's article [Performance Improvements in .NET 7](https://devblogs.microsoft.com/dotnet/performance_improvements_in_net_7). Finally, we like to hear from you, so if you encounter an issue or have any feedback, you can file it in [our GitHub](https://github.com/dotnet/runtime/issues).

@@ -13,7 +13,7 @@ System.Net.Security | SslStream compatibility gaps fix | Done
 System.Net.Security | SslStream perf improvements (?) | Done
 System.Net | WebSockets over HTTP/2 | Done
 System.Net | New WebSockets APIs (Upgrage Resp Details etc) | Done
-(*) System.Net.Http | Zero-byte reads |
+~~(*) System.Net.Http~~ | ~~Zero-byte reads~~ |
 
 ## Follow-up:
 
@@ -22,5 +22,5 @@ System.Net | New WebSockets APIs (Upgrage Resp Details etc) | Done
  - [x] ~~Add community contributor thanks to "Headers thread safety"~~
  - [x] ~~Address Tomas' comments on System.Net.Security~~
  - [x] ~~Explain Upgrade request in "New WebSockets APIs"~~
- - [ ] Unify all links
- - [ ] Unify all formatting
+ - [x] ~~Unify all links~~
+ - [x] ~~Unify all formatting~~

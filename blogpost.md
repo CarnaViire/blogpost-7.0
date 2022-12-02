@@ -32,7 +32,7 @@ This was achieved by the following changes:
 
 ## Detect HTTP/2 and HTTP/3 Protocol Errors
 
-The HTTP/2 and HTTP/3 protocols define protocol-level error codes in [RFC 7540 section 7](https://www.rfc-editor.org/rfc/rfc7540#section-7) and [RFC 9114 section 8.1](https://www.rfc-editor.org/rfc/rfc9114.html#section-8.1), for example `REFUSED_STREAM (0x7)` in HTTP/2 or `H3_EXCESSIVE_LOAD (0x0107)` in HTTP/3. Unlike HTTP-status codes, this is low-level error information that is unimportant for most `HttpClient` users, but it helps in advanced HTTP/2 or HTTP/3 scenarios, notably grpc-dotnet, where distinguishing protocol errors is vital to implement [client retries](https://learn.microsoft.com/aspnet/core/grpc/retries?view=aspnetcore-7.0).
+The HTTP/2 and HTTP/3 protocols define protocol-level error codes in [RFC 7540 Section 7](https://www.rfc-editor.org/rfc/rfc7540#section-7) and [RFC 9114 Section 8.1](https://www.rfc-editor.org/rfc/rfc9114.html#section-8.1), for example, `REFUSED_STREAM (0x7)` in HTTP/2 or `H3_EXCESSIVE_LOAD (0x0107)` in HTTP/3. Unlike HTTP-status codes, this is low-level error information that is unimportant for most `HttpClient` users, but it helps in advanced HTTP/2 or HTTP/3 scenarios, notably grpc-dotnet, where distinguishing protocol errors is vital to implement [client retries](https://learn.microsoft.com/aspnet/core/grpc/retries?view=aspnetcore-7.0).
 
 We defined a new exception [`HttpProtocolException`](https://learn.microsoft.com/dotnet/api/system.net.http.httpprotocolexception) to hold the protocol-level error code in it's `ErrorCode` property.
 
@@ -68,7 +68,7 @@ catch (HttpProtocolException pex)
 
 HTTP/3 support in `HttpClient` was already feature complete in the previous .NET release, so we mostly concentrated our efforts in this space on the underlying `System.Net.Quic`. Despite that, we did introduce few fixes and changes in .NET 7.
 
-The most important change is that HTTP/3 is now enabled by default ([dotnet/runtime#73153](https://github.com/dotnet/runtime/pull/73153)). It doesn't mean that all HTTP requests will prefer HTTP/3 from now on, but in certain cases they might upgrade to it. For it to happen, the request must opt into version upgrade via [`HttpRequestMessage.VersionPolicy`](https://learn.microsoft.com/dotnet/api/system.net.http.httprequestmessage.versionpolicy?view=net-7.0) set to `RequestVersionOrHigher`. Then, if the server announces HTTP/3 authority in `Alt-Svc` header, `HttpClient` will use it for further requests, see [RFC 9114 - 3.1.1. HTTP Alternative Services](https://www.rfc-editor.org/rfc/rfc9114.html#name-http-alternative-services).
+The most important change is that HTTP/3 is now enabled by default ([dotnet/runtime#73153](https://github.com/dotnet/runtime/pull/73153)). It doesn't mean that all HTTP requests will prefer HTTP/3 from now on, but in certain cases they might upgrade to it. For it to happen, the request must opt into version upgrade via [`HttpRequestMessage.VersionPolicy`](https://learn.microsoft.com/dotnet/api/system.net.http.httprequestmessage.versionpolicy?view=net-7.0) set to `RequestVersionOrHigher`. Then, if the server announces HTTP/3 authority in `Alt-Svc` header, `HttpClient` will use it for further requests, see [RFC 9114 Section 3.1.1](https://www.rfc-editor.org/rfc/rfc9114#section-3.1.1).
 
 To name a few other interesting changes:
 - HTTP telemetry was extended to cover HTTP/3 - [dotnet/runtime#40896](https://github.com/dotnet/runtime/issues/40896).
@@ -79,9 +79,9 @@ To name a few other interesting changes:
 
 # QUIC
 
-QUIC is a new, transport layer protocol. It has been recently standardized in [RFC 9000](https://www.rfc-editor.org/rfc/rfc9000.html). It uses UDP as an underlying protocol and it's inherently secure as it mandates TLS 1.3 usage, see [RFC 9001](https://www.rfc-editor.org/rfc/rfc9001.html). Another interesting difference from well-known transport protocols such as TCP and UDP is that it has stream multiplexing built-in on the transport layer. This allows having multiple, concurrent, independent data streams that do not affect each other.
+QUIC is a new, transport layer protocol. It has been recently standardized in [RFC 9000](https://www.rfc-editor.org/rfc/rfc9000). It uses UDP as an underlying protocol and it's inherently secure as it mandates TLS 1.3 usage, see [RFC 9001](https://www.rfc-editor.org/rfc/rfc9001). Another interesting difference from well-known transport protocols such as TCP and UDP is that it has stream multiplexing built-in on the transport layer. This allows having multiple, concurrent, independent data streams that do not affect each other.
 
-QUIC itself doesn't define any semantics for the exchanged data as it's a transport protocol. It's rather used in application layer protocols, for example in [HTTP/3](https://www.rfc-editor.org/rfc/rfc9114.html) or in [SMB over QUIC](https://learn.microsoft.com/windows-server/storage/file-server/smb-over-quic). It can also be used for any custom defined protocol.
+QUIC itself doesn't define any semantics for the exchanged data as it's a transport protocol. It's rather used in application layer protocols, for example in [HTTP/3](https://www.rfc-editor.org/rfc/rfc9114) or in [SMB over QUIC](https://learn.microsoft.com/windows-server/storage/file-server/smb-over-quic). It can also be used for any custom defined protocol.
 
 The protocol offers many advantages over TCP with TLS. For instance, faster connection establishment as it doesn't require as many round trips as TCP with TLS on top. Or avoidance of head-of-line blocking problem where one lost packet doesn't block data of all the other streams. On the other hand, there are disadvantages that come with using QUIC. As it is a new protocol, its adoption is still growing and is limited. Apart from that, QUIC traffic might be even blocked by some networking components.
 
@@ -94,9 +94,9 @@ From the implementation perspective, `System.Net.Quic` depends on [MsQuic](https
 ## API Overview
 
 [`System.Net.Quic`](https://learn.microsoft.com/dotnet/api/system.net.quic?view=net-7.0) brings three major classes that enable usage of QUIC protocol:
-- `QuicListener`: server side class for accepting incoming connections.
-- `QuicConnection`: QUIC connection, corresponding to [RFC 9000 -  5. Connections](https://www.rfc-editor.org/rfc/rfc9000.html#name-connections).
-- `QuicStream`: QUIC stream, corresponding to [RFC 9000 -   2. Streams ](https://www.rfc-editor.org/rfc/rfc9000.html#name-streams).
+- `QuicListener` - server side class for accepting incoming connections.
+- `QuicConnection` - QUIC connection, corresponding to [RFC 9000 Section 5](https://www.rfc-editor.org/rfc/rfc9000#section-5).
+- `QuicStream` - QUIC stream, corresponding to [RFC 9000 Section 2](https://www.rfc-editor.org/rfc/rfc9000#section-2).
 
 But before any usage of these classes, user code should check whether QUIC is currently supported, as `libmsquic` might be missing, or TLS 1.3 might not be supported. For that, both `QuicListener` and `QuicConnection` expose a static property `IsSupported`:
 ```C#
@@ -140,11 +140,11 @@ if (!QuicListener.IsSupported)
 var serverConnectionOptions = new QuicServerConnectionOptions()
 {
     // Used to abort stream if it's not properly closed by the user.
-    // See https://www.rfc-editor.org/rfc/rfc9000.html#name-application-protocol-error-
+    // See https://www.rfc-editor.org/rfc/rfc9000#section-20.2
     DefaultStreamErrorCode = 0x0A, // Protocol-dependent error code.
 
     // Used to close the connection if it's not done by the user.
-    // See https://www.rfc-editor.org/rfc/rfc9000.html#name-application-protocol-error-
+    // See https://www.rfc-editor.org/rfc/rfc9000#section-20.2
     DefaultCloseErrorCode = 0x0B, // Protocol-dependent error code.
 
     // Same options as for server side SslStream.
@@ -188,7 +188,7 @@ More details about how this class was designed can be found in the `QuicListener
 
 [`QuicConnection`](https://learn.microsoft.com/dotnet/api/system.net.quic.quicconnection?view=net-7.0) is a class used for both server and client side QUIC connections. Server side connections are created internally by the listener and handed out via [`QuicListener.AcceptConnectionAsync`](https://learn.microsoft.com/dotnet/api/system.net.quic.quiclistener.acceptconnectionasync?view=net-7.0). Client side connections must be opened and connected to the server. As with the listener, there's a static method [`QuicConnection.ConnectAsync`](https://learn.microsoft.com/dotnet/api/system.net.quic.quicconnection.connectasync?view=net-7.0) that instantiates and connects the connection. It accepts an instance of [`QuicClientConnectionOptions`](https://learn.microsoft.com/dotnet/api/system.net.quic.quicclientconnectionoptions?view=net-7.0), an analogous class to [`QuicServerConnectionOptions`](https://learn.microsoft.com/dotnet/api/system.net.quic.quicserverconnectionoptions?view=net-7.0). After that, the work with the connection doesn't differ between client and server. It can open outgoing streams and accept incoming ones. It also provides properties with information about the connection, like [`LocalEndPoint`](https://learn.microsoft.com/dotnet/api/system.net.quic.quicconnection.localendpoint?view=net-7.0), [`RemoteEndPoint`](https://learn.microsoft.com/dotnet/api/system.net.quic.quicconnection.remoteendpoint?view=net-7.0), or [`RemoteCertificate`](https://learn.microsoft.com/dotnet/api/system.net.quic.quicconnection.remotecertificate?view=net-7.0).
 
-When the work with the connection is done, it needs to be closed and disposed. QUIC protocol mandates using an application layer code for immediate closure, see [RFC 9000 - 10.2. Immediate Close](https://www.rfc-editor.org/rfc/rfc9000.html#name-immediate-close). For that, [`CloseAsync`](https://learn.microsoft.com/dotnet/api/system.net.quic.quicconnection.closeasync?view=net-7.0) with application layer code can be called or if not, [`DisposeAsync`](https://learn.microsoft.com/dotnet/api/system.net.quic.quicconnection.disposeasync?view=net-7.0) will use the code provided in [`QuicConnectionOptions.DefaultCloseErrorCode`](https://learn.microsoft.com/dotnet/api/system.net.quic.quicconnectionoptions.defaultcloseerrorcode?view=net-7.0#system-net-quic-quicconnectionoptions-defaultcloseerrorcode). Either way, [`DisposeAsync`](https://learn.microsoft.com/dotnet/api/system.net.quic.quicconnection.disposeasync?view=net-7.0) must be called at the end of the work with the connection to fully release all the associated resources.
+When the work with the connection is done, it needs to be closed and disposed. QUIC protocol mandates using an application layer code for immediate closure, see [RFC 9000 Section 10.2](https://www.rfc-editor.org/rfc/rfc9000#section-10.2). For that, [`CloseAsync`](https://learn.microsoft.com/dotnet/api/system.net.quic.quicconnection.closeasync?view=net-7.0) with application layer code can be called or if not, [`DisposeAsync`](https://learn.microsoft.com/dotnet/api/system.net.quic.quicconnection.disposeasync?view=net-7.0) will use the code provided in [`QuicConnectionOptions.DefaultCloseErrorCode`](https://learn.microsoft.com/dotnet/api/system.net.quic.quicconnectionoptions.defaultcloseerrorcode?view=net-7.0#system-net-quic-quicconnectionoptions-defaultcloseerrorcode). Either way, [`DisposeAsync`](https://learn.microsoft.com/dotnet/api/system.net.quic.quicconnection.disposeasync?view=net-7.0) must be called at the end of the work with the connection to fully release all the associated resources.
 
 The sample usage of `QuicConnection`:
 ```C#
@@ -208,11 +208,11 @@ var clientConnectionOptions = new QuicClientConnectionOptions()
     RemoteEndPoint = listener.LocalEndPoint,
 
     // Used to abort stream if it's not properly closed by the user.
-    // See https://www.rfc-editor.org/rfc/rfc9000.html#name-application-protocol-error-
+    // See https://www.rfc-editor.org/rfc/rfc9000#section-20.2
     DefaultStreamErrorCode = 0x0A, // Protocol-dependent error code.
 
     // Used to close the connection if it's not done by the user.
-    // See https://www.rfc-editor.org/rfc/rfc9000.html#name-application-protocol-error-
+    // See https://www.rfc-editor.org/rfc/rfc9000#section-20.2
     DefaultCloseErrorCode = 0x0B, // Protocol-dependent error code.
 
     // Optionally set limits for inbound streams.
@@ -257,19 +257,19 @@ More details about how this class was designed can be found in the `QuicConnecti
 
 ### QuicStream
 
-[`QuicStream`](https://learn.microsoft.com/dotnet/api/system.net.quic.quicstream?view=net-7.0) is the actual type that is used to send and receive data in QUIC protocol. It derives from ordinary [`Stream`](https://learn.microsoft.com/dotnet/api/system.io.stream?view=net-7.0) and can be used as such, but it also offers several features that are specific to QUIC protocol. Firstly, a QUIC stream can either be unidirectional or bidirectional, see [RFC 9000 - 2.1. Stream Types and Identifiers](https://www.rfc-editor.org/rfc/rfc9000.html#name-stream-types-and-identifier). A bidirectional stream is able to send and receive data on both sides, whereas unidirectional stream can only write from the initiating side and read on the accepting one. Each peer can limit how many concurrent stream of each type is willing to accept, see [`QuicConnectionOptions.MaxInboundBidirectionalStreams`](https://learn.microsoft.com/dotnet/api/system.net.quic.quicconnectionoptions.maxinboundbidirectionalstreams?view=net-7.0) and [`QuicConnectionOptions.MaxInboundUnidirectionalStreams`](https://learn.microsoft.com/dotnet/api/system.net.quic.quicconnectionoptions.maxinboundunidirectionalstreams?view=net-7.0).
+[`QuicStream`](https://learn.microsoft.com/dotnet/api/system.net.quic.quicstream?view=net-7.0) is the actual type that is used to send and receive data in QUIC protocol. It derives from ordinary [`Stream`](https://learn.microsoft.com/dotnet/api/system.io.stream?view=net-7.0) and can be used as such, but it also offers several features that are specific to QUIC protocol. Firstly, a QUIC stream can either be unidirectional or bidirectional, see [RFC 9000 Section 2.1](https://www.rfc-editor.org/rfc/rfc9000#section-2.1). A bidirectional stream is able to send and receive data on both sides, whereas unidirectional stream can only write from the initiating side and read on the accepting one. Each peer can limit how many concurrent stream of each type is willing to accept, see [`QuicConnectionOptions.MaxInboundBidirectionalStreams`](https://learn.microsoft.com/dotnet/api/system.net.quic.quicconnectionoptions.maxinboundbidirectionalstreams?view=net-7.0) and [`QuicConnectionOptions.MaxInboundUnidirectionalStreams`](https://learn.microsoft.com/dotnet/api/system.net.quic.quicconnectionoptions.maxinboundunidirectionalstreams?view=net-7.0).
 
 Another particularity of QUIC stream is ability to explicitly close the writing side in the middle of work with the stream, see [`CompleteWrites`](https://learn.microsoft.com/dotnet/api/system.net.quic.quicstream.completewrites?view=net-7.0) or [`WriteAsync`](https://learn.microsoft.com/dotnet/api/system.net.quic.quicstream.writeasync?view=net-7.0#system-net-quic-quicstream-writeasync(system-readonlymemory((system-byte))-system-boolean-system-threading-cancellationtoken)) overload with `completeWrites` argument. Closing of the writing side lets the peer know that no more data will arrive, yet the peer still can continue sending (in case of a bidirectional stream). This is useful in scenarios like HTTP request/response exchange when the client sends the request and closes the writing side to let the server know that this is the end of the request content. Server is still able to send the response after that, but knows that no more data will arrive from the client. And for erroneous cases, either writing or reading side of the stream can be aborted, see [`Abort`](https://learn.microsoft.com/dotnet/api/system.net.quic.quicstream.abort?view=net-7.0). The behavior of the individual methods for each stream type is summarized in the following table (note that both client and server can open and accept streams):
 
-|            | peer opening stream  | peer accepting stream  |
+|            | Peer opening stream  | Peer accepting stream  |
 | -          | -       | -       |
 | `CanRead`  | _bidirectional_: `true`<br/> _unidirectional_: `false` | `true`  |
 | `CanWrite` | `true`  | _bidirectional_: `true`<br/> _unidirectional_: `false` |
 | `ReadAsync` | _bidirectional_: reads data<br/> _unidirectional_: `InvalidOperationException` | reads data |
 | `WriteAsync` | sends data => peer read returns the data | _bidirectional_: sends data => peer read returns the data<br/> _unidirectional_: `InvalidOperationException`  |
 | `CompleteWrites` | closes writing side => peer read returns 0 | _bidirectional_: closes writing side => peer read returns 0<br/> _unidirectional_: no-op |
-| `Abort(QuicAbortDirection.Read)` | _bidirectional_: [STOP_SENDING](https://www.rfc-editor.org/rfc/rfc9000.html#name-stop_sending-frames) => peer write throws `QuicException(QuicError.OperationAborted)`<br/> _unidirectional_: no-op | [STOP_SENDING](https://www.rfc-editor.org/rfc/rfc9000.html#name-stop_sending-frames) => peer write throws `QuicException(QuicError.OperationAborted)`|
-| `Abort(QuicAbortDirection.Write)` | [RESET_STREAM](https://www.rfc-editor.org/rfc/rfc9000.html#name-reset_stream-frames) => peer read throws `QuicException(QuicError.OperationAborted)` | _bidirectional_: [RESET_STREAM](https://www.rfc-editor.org/rfc/rfc9000.html#name-reset_stream-frames) => peer read throws `QuicException(QuicError.OperationAborted)`<br/> _unidirectional_: no-op |
+| `Abort(QuicAbortDirection.Read)` | _bidirectional_: [STOP_SENDING](https://www.rfc-editor.org/rfc/rfc9000#section-19.5) => peer write throws `QuicException(QuicError.OperationAborted)`<br/> _unidirectional_: no-op | [STOP_SENDING](https://www.rfc-editor.org/rfc/rfc9000#section-19.5) => peer write throws `QuicException(QuicError.OperationAborted)`|
+| `Abort(QuicAbortDirection.Write)` | [RESET_STREAM](https://www.rfc-editor.org/rfc/rfc9000#section-19.4) => peer read throws `QuicException(QuicError.OperationAborted)` | _bidirectional_: [RESET_STREAM](https://www.rfc-editor.org/rfc/rfc9000#section-19.4) => peer read throws `QuicException(QuicError.OperationAborted)`<br/> _unidirectional_: no-op |
 
 On top of these methods, `QuicStream` offers two specialized properties to get notified whenever either reading or writing side of the stream has been closed: [`ReadsClosed`](https://learn.microsoft.com/dotnet/api/system.net.quic.quicstream.readsclosed?view=net-7.0) and [`WritesClosed`](https://learn.microsoft.com/dotnet/api/system.net.quic.quicstream.writesclosed?view=net-7.0). Both return a `Task` that completes with its corresponding side getting closed, whether it be success or abort, in which case the `Task` will contain appropriate exception. These properties are useful when the user code needs to know about stream side getting closed without issuing call to `ReadAsync` or `WriteAsync`.
 
@@ -486,7 +486,7 @@ Most of the networking perfomance improvements in .NET 7 are covered by Stephen'
 
 ### TLS Resume
 
-Establishing new TLS connection is fairly expensive operation as it requires multiple steps and several round trips. In scenarios where connection to the same server is re-created very often, time consumed by the handshakes will add up. TLS offers feature to mitigate this called Session Resumption, see [RFC 5246 - 7.3.  Handshake Protocol Overview](https://www.rfc-editor.org/rfc/rfc5246.html#section-7.3) and [RFC 8446 - 2.2.  Resumption and Pre-Shared Key](https://www.rfc-editor.org/rfc/rfc8446#section-2.2). In short, during the handshake, client can send an identification of previously established TLS session and if server agrees, the security context gets re-established based on the cached data from the previous connection. Even though the mechanics differ for different TLS versions, the end goal is the same, save a round-trip and some CPU time when re-establishing connection to a previously connected server.
+Establishing new TLS connection is fairly expensive operation as it requires multiple steps and several round trips. In scenarios where connection to the same server is re-created very often, time consumed by the handshakes will add up. TLS offers feature to mitigate this called Session Resumption, see [RFC 5246 Section 7.3](https://www.rfc-editor.org/rfc/rfc5246.html#section-7.3) and [RFC 8446 Section 2.2](https://www.rfc-editor.org/rfc/rfc8446#section-2.2). In short, during the handshake, client can send an identification of previously established TLS session and if server agrees, the security context gets re-established based on the cached data from the previous connection. Even though the mechanics differ for different TLS versions, the end goal is the same, save a round-trip and some CPU time when re-establishing connection to a previously connected server.
 This feature is automatically provided by SChannel on Windows, but with OpenSSL on Linux it required several changes to enable this:
 - Server side (stateless) - [dotnet/runtime#57079](https://github.com/dotnet/runtime/pull/57079) and [dotnet/runtime#63030](https://github.com/dotnet/runtime/pull/63030).
 - Client side - [dotnet/runtime#64369](https://github.com/dotnet/runtime/pull/64369).

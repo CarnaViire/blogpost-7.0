@@ -34,7 +34,7 @@ This was achieved by the following changes:
 
 The HTTP/2 and HTTP/3 protocols define protocol-level error codes in [RFC 7540 Section 7](https://www.rfc-editor.org/rfc/rfc7540#section-7) and [RFC 9114 Section 8.1](https://www.rfc-editor.org/rfc/rfc9114.html#section-8.1), for example, `REFUSED_STREAM (0x7)` in HTTP/2 or `H3_EXCESSIVE_LOAD (0x0107)` in HTTP/3. Unlike HTTP-status codes, this is low-level error information that is unimportant for most `HttpClient` users, but it helps in advanced HTTP/2 or HTTP/3 scenarios, notably grpc-dotnet, where distinguishing protocol errors is vital to implement [client retries](https://learn.microsoft.com/aspnet/core/grpc/retries?view=aspnetcore-7.0).
 
-We defined a new exception [`HttpProtocolException`](https://learn.microsoft.com/dotnet/api/system.net.http.httpprotocolexception) to hold the protocol-level error code in it's `ErrorCode` property.
+We defined a new exception [`HttpProtocolException`](https://learn.microsoft.com/dotnet/api/system.net.http.httpprotocolexception?view=net-7.0) to hold the protocol-level error code in it's `ErrorCode` property.
 
 When calling `HttpClient` directly, `HttpRequestException` can be an inner exception of `HttpRequestException`:
 
@@ -443,9 +443,9 @@ while (!clientAuthentication.IsAuthenticated)
 }
 ```
 
-Once the authenticated session is established, the `NegotiateAuthentication` instance can be used to sign/encrypt the outgoing messages and verify/decrypt the incoming messages. This is done through the [Wrap](https://learn.microsoft.com/dotnet/api/system.net.security.negotiateauthentication.wrap?view=net-7.0) and [Unwrap](https://learn.microsoft.com/dotnet/api/system.net.security.negotiateauthentication.unwrap?view=net-7.0) methods.
+Once the authenticated session is established, the `NegotiateAuthentication` instance can be used to sign/encrypt the outgoing messages and verify/decrypt the incoming messages. This is done through the [`Wrap`](https://learn.microsoft.com/dotnet/api/system.net.security.negotiateauthentication.wrap?view=net-7.0) and [`Unwrap`](https://learn.microsoft.com/dotnet/api/system.net.security.negotiateauthentication.unwrap?view=net-7.0) methods.
 
-This change was done as well as this part of the article was written by a community contributor [@filipnavara](https://github.com/filipnavara).
+This change was done as well as this part of the article was written by a community contributor [@filipnavara](https://github.com/filipnavara). Thanks!
 
 
 ## Options for certificate validation
@@ -516,7 +516,7 @@ Prior to .NET 7, server's response part of WebSocket's opening handshake (HTTP r
 
 In case of failure, HTTP status code can help to distinguish between retriable and non-retriable errors (e.g. server doesn't support WebSockets at all, or it was just a transient network error). Headers might also contain additional information on how to handle the situation. The headers are useful even in case of a successful WebSocket handshake, e.g. they can contain token tied to a session, information related to subprotocol version, or that the server can go down soon.
 
-.NET 7 adds a setting [ClientWebSocketOptions.CollectHttpResponseDetails](https://learn.microsoft.com/dotnet/api/system.net.websockets.clientwebsocketoptions.collecthttpresponsedetails?view=net-7.0) that enables collecting upgrade response details in `ClientWebSocket` instance during `ClientWebSocket.ConnectAsync` call. You can later access the data using [ClientWebSocket.HttpStatusCode](https://learn.microsoft.com/dotnet/api/system.net.websockets.clientwebsocket.httpstatuscode?view=net-7.0) and [ClientWebSocket.HttpResponseHeaders](https://learn.microsoft.com/dotnet/api/system.net.websockets.clientwebsocket.httpresponseheaders?view=net-7.0) properties, even in case of `ClientWebSocket.ConnectAsync` throwing an exception. Note that in the exceptional case, the information might be unavailable, i.e. if the server never responded to the request.
+.NET 7 adds [`CollectHttpResponseDetails`](https://learn.microsoft.com/dotnet/api/system.net.websockets.clientwebsocketoptions.collecthttpresponsedetails?view=net-7.0) setting to `ClientWebSocketOptions` that enables collecting upgrade response details in a `ClientWebSocket` instance during [`ConnectAsync`](https://learn.microsoft.com/dotnet/api/system.net.websockets.clientwebsocket.connectasync?view=net-7.0) call. You can later access the data using [`HttpStatusCode`](https://learn.microsoft.com/dotnet/api/system.net.websockets.clientwebsocket.httpstatuscode?view=net-7.0) and [`HttpResponseHeaders`](https://learn.microsoft.com/dotnet/api/system.net.websockets.clientwebsocket.httpresponseheaders?view=net-7.0) properties of the `ClientWebSocket` instance, even in case of `ConnectAsync` throwing an exception. Note that in the exceptional case, the information might be unavailable, i.e. if the server never responded to the request.
 
 Also note that in case of a successful connect and after consuming `HttpResponseHeaders` data, you can reduce `ClientWebSocket`'s memory footprint by setting `ClientWebSocket.HttpResponseHeaders` property to `null`.
 
@@ -542,9 +542,9 @@ catch (WebSocketException)
 
 ## Providing external HTTP client
 
-In the default case, `ClientWebSocket` uses a cached static `HttpMessageInvoker` instance to execute HTTP Upgrade requests. However, there are `ClientWebSocket` [options](https://learn.microsoft.com/dotnet/api/system.net.websockets.clientwebsocket.options?view=net-7.0#system-net-websockets-clientwebsocket-options) that prevent caching the invoker, such as `ClientWebSocketOptions.Proxy`, `ClientWebSocketOptions.ClientCertificates` or `ClientWebSocketOptions.Cookies`. `HttpMessageInvoker` instance with these parameters is not safe to be reused and needs be created each time `ClientWebSocket.ConnectAsync` is called. This results in many unnecessary allocations and makes reuse of `HttpMessageInvoker` connection pool impossible.
+In the default case, `ClientWebSocket` uses a cached static `HttpMessageInvoker` instance to execute HTTP Upgrade request. However, there are certain [`ClientWebSocketOptions`](https://learn.microsoft.com/dotnet/api/system.net.websockets.clientwebsocket.options?view=net-7.0#system-net-websockets-clientwebsocket-options) that prevent caching the invoker, such as `Proxy`, `ClientCertificates` or `Cookies`. `HttpMessageInvoker` instance with these parameters is not safe to be reused and needs be created each time [`ConnectAsync`](https://learn.microsoft.com/dotnet/api/system.net.websockets.clientwebsocket.connectasync?view=net-7.0#system-net-websockets-clientwebsocket-connectasync(system-uri-system-threading-cancellationtoken)) is called. This results in many unnecessary allocations and makes reuse of `HttpMessageInvoker` connection pool impossible.
 
-.NET 7 allows you to pass an existing `HttpClient` or `HttpMessageInvoker` instance to `ClientWebSocket.ConnectAsync` call, using the [ConnectAsync(Uri, HttpMessageInvoker, CancellationToken)](https://learn.microsoft.com/dotnet/api/system.net.websockets.clientwebsocket.connectasync?view=net-7.0#system-net-websockets-clientwebsocket-connectasync(system-uri-system-net-http-httpmessageinvoker-system-threading-cancellationtoken)) overload. In that case, HTTP Upgrade request would be executed using the provided instance.
+.NET 7 allows you to pass an existing [`HttpMessageInvoker`](https://learn.microsoft.com/dotnet/api/system.net.http.httpmessageinvoker?view=net-7.0) (e.g. [`HttpClient`](https://learn.microsoft.com/dotnet/api/system.net.http.httpclient?view=net-7.0)) instance to `ConnectAsync` call, using the [`ConnectAsync(Uri, HttpMessageInvoker, CancellationToken)`](https://learn.microsoft.com/dotnet/api/system.net.websockets.clientwebsocket.connectasync?view=net-7.0#system-net-websockets-clientwebsocket-connectasync(system-uri-system-net-http-httpmessageinvoker-system-threading-cancellationtoken)) overload. In that case, HTTP Upgrade request would be executed using the provided instance.
 
 ```c#
 var httpClient = new HttpClient();
@@ -554,14 +554,14 @@ await ws.ConnectAsync(uri, httpClient, cancellationToken);
 ```
 
 Note that in case a custom HTTP invoker is passed, any of the following `ClientWebSocketOptions` *must not* be set, and should be set up on the HTTP invoker instead:
-- [ClientCertificates](https://learn.microsoft.com/dotnet/api/system.net.websockets.clientwebsocketoptions.clientcertificates?view=net-7.0)
-- [Cookies](https://learn.microsoft.com/dotnet/api/system.net.websockets.clientwebsocketoptions.cookies?view=net-7.0)
-- [Credentials](https://learn.microsoft.com/dotnet/api/system.net.websockets.clientwebsocketoptions.credentials?view=net-7.0)
-- [Proxy](https://learn.microsoft.com/dotnet/api/system.net.websockets.clientwebsocketoptions.proxy?view=net-7.0)
-- [RemoteCertificateValidationCallback](https://learn.microsoft.com/dotnet/api/system.net.websockets.clientwebsocketoptions.remotecertificatevalidationcallback?view=net-7.0)
-- [UseDefaultCredentials](https://learn.microsoft.com/dotnet/api/system.net.websockets.clientwebsocketoptions.usedefaultcredentials?view=net-7.0)
+- [`ClientCertificates`](https://learn.microsoft.com/dotnet/api/system.net.websockets.clientwebsocketoptions.clientcertificates?view=net-7.0)
+- [`Cookies`](https://learn.microsoft.com/dotnet/api/system.net.websockets.clientwebsocketoptions.cookies?view=net-7.0)
+- [`Credentials`](https://learn.microsoft.com/dotnet/api/system.net.websockets.clientwebsocketoptions.credentials?view=net-7.0)
+- [`Proxy`](https://learn.microsoft.com/dotnet/api/system.net.websockets.clientwebsocketoptions.proxy?view=net-7.0)
+- [`RemoteCertificateValidationCallback`](https://learn.microsoft.com/dotnet/api/system.net.websockets.clientwebsocketoptions.remotecertificatevalidationcallback?view=net-7.0)
+- [`UseDefaultCredentials`](https://learn.microsoft.com/dotnet/api/system.net.websockets.clientwebsocketoptions.usedefaultcredentials?view=net-7.0)
 
-This is how you can set up all of these options on the HTTP invoker instance:
+This is how you can set up all of these options on the `HttpMessageInvoker` instance:
 
 ```c#
 var handler = new HttpClientHandler();
@@ -608,7 +608,7 @@ The combination of `HttpVersion.Version11` and `HttpVersionPolicy.RequestVersion
 
 By default, `HttpVersion = HttpVersion.Version11` and `HttpVersionPolicy = HttpVersionPolicy.RequestVersionOrLower` are set, meaning that only HTTP/1.1 will be used.
 
-The ability to multiplex WebSocket connections and HTTP requests over a single HTTP/2 connection is a crucial part of this feature. For it to work as expected, you need to pass and reuse the same `HttpMessageInvoker` instance (e.g. `HttpClient`) from your code when calling `ConnectAsync`, i.e. use [ClientWebSocket.ConnectAsync(Uri, HttpMessageInvoker, CancellationToken)](https://learn.microsoft.com/dotnet/api/system.net.websockets.clientwebsocket.connectasync?view=net-7.0#system-net-websockets-clientwebsocket-connectasync(system-uri-system-net-http-httpmessageinvoker-system-threading-cancellationtoken)) overload. This will reuse the connection pool within the `HttpMessageInvoker` instance for the multiplexing.
+The ability to multiplex WebSocket connections and HTTP requests over a single HTTP/2 connection is a crucial part of this feature. For it to work as expected, you need to pass and reuse the same `HttpMessageInvoker` instance (e.g. `HttpClient`) from your code when calling `ConnectAsync`, i.e. use [`ConnectAsync(Uri, HttpMessageInvoker, CancellationToken)`](https://learn.microsoft.com/dotnet/api/system.net.websockets.clientwebsocket.connectasync?view=net-7.0#system-net-websockets-clientwebsocket-connectasync(system-uri-system-net-http-httpmessageinvoker-system-threading-cancellationtoken)) overload. This will reuse the connection pool within the `HttpMessageInvoker` instance for the multiplexing.
 
 # Final Notes
 

@@ -20,15 +20,15 @@ The `HttpHeaders` collections were never thread-safe. Accessing a header may for
 Before .NET 6, reading from the collection concurrently happened to be thread-safe in *most* cases.
 
 Starting with .NET 6, less locking was performed around header parsing as it was no longer needed internally.
-Due to this change, multiple examples of users accessing the headers concurrently surfaced, for example, in [gRPC](https://github.com/dotnet/runtime/issues/55898), [NewRelic](https://github.com/newrelic/newrelic-dotnet-agent/issues/803), or even [HttpClient itself](https://github.com/dotnet/runtime/issues/65379).
+Due to this change, multiple examples of users accessing the headers concurrently surfaced, for example, in gRPC ([dotnet/runtime#55898](https://github.com/dotnet/runtime/issues/55898)), NewRelic ([newrelic/newrelic-dotnet-agent#803](https://github.com/newrelic/newrelic-dotnet-agent/issues/803)), or even HttpClient itself ([dotnet/runtime#65379](https://github.com/dotnet/runtime/issues/65379)).
 Violating thread safety in .NET 6 may result in the header values being duplicated/malformed or various exceptions being thrown during enumeration/header accesses.
 
 .NET 7 makes the header behavior more intuitive. The `HttpHeaders` collection now matches the thread-safety guarantees of a `Dictionary`:
 > The collection can support multiple readers concurrently, as long as it is not modified. In the rare case where an enumeration contends with write accesses, the collection must be locked during the entire enumeration. To allow the collection to be accessed by multiple threads for reading and writing, you must implement your own synchronization.
 
 This was achieved by the following changes:
-- A "validating read" of an invalid value does not result in the removal of the invalid value: [dotnet/runtime#67833](https://github.com/dotnet/runtime/pull/67833) (thanks [@heathbm](https://github.com/heathbm)).
-- Concurrent reads are thread-safe: [dotnet/runtime#68115](https://github.com/dotnet/runtime/pull/68115).
+- A "validating read" of an invalid value does not result in the removal of the invalid value - [dotnet/runtime#67833](https://github.com/dotnet/runtime/pull/67833) (thanks [@heathbm](https://github.com/heathbm)).
+- Concurrent reads are thread-safe - [dotnet/runtime#68115](https://github.com/dotnet/runtime/pull/68115).
 
 ## Detect HTTP/2 and HTTP/3 Protocol Errors
 
@@ -68,12 +68,12 @@ catch (HttpProtocolException pex)
 
 HTTP/3 support in `HttpClient` was already feature complete in the previous .NET release, so we mostly concentrated our efforts in this space on the underlying `System.Net.Quic`. Despite that, we did introduce few fixes and changes in .NET 7.
 
-The most important change is that HTTP/3 is now enabled by default ([PR #73153](https://github.com/dotnet/runtime/pull/73153)). It doesn't mean that all HTTP requests will prefer HTTP/3 from now on, but in certain cases they might upgrade to it. For it to happen, the request must opt into version upgrade via [`HttpRequestMessage.VersionPolicy`](https://learn.microsoft.com/cs-cz/dotnet/api/system.net.http.httprequestmessage.versionpolicy?view=net-7.0) set to `RequestVersionOrHigher`. Then, if the server announces HTTP/3 authority in `Alt-Svc` header, `HttpClient` will use it for further requests, see [RFC 9114 - 3.1.1. HTTP Alternative Services](https://www.rfc-editor.org/rfc/rfc9114.html#name-http-alternative-services).
+The most important change is that HTTP/3 is now enabled by default ([dotnet/runtime#73153](https://github.com/dotnet/runtime/pull/73153)). It doesn't mean that all HTTP requests will prefer HTTP/3 from now on, but in certain cases they might upgrade to it. For it to happen, the request must opt into version upgrade via [`HttpRequestMessage.VersionPolicy`](https://learn.microsoft.com/cs-cz/dotnet/api/system.net.http.httprequestmessage.versionpolicy?view=net-7.0) set to `RequestVersionOrHigher`. Then, if the server announces HTTP/3 authority in `Alt-Svc` header, `HttpClient` will use it for further requests, see [RFC 9114 - 3.1.1. HTTP Alternative Services](https://www.rfc-editor.org/rfc/rfc9114.html#name-http-alternative-services).
 
 To name a few other interesting changes:
-- HTTP telemetry was extended to cover HTTP/3 - [Issue #40896](https://github.com/dotnet/runtime/issues/40896).
-- Exception details were improved in case QUIC connection cannot be established - [Issue #70949](https://github.com/dotnet/runtime/issues/70949)
-- Proper usage of Host header for Server Name Identification (SNI) was fixed - [Issue #57169](https://github.com/dotnet/runtime/issues/57169)
+- HTTP telemetry was extended to cover HTTP/3 - [dotnet/runtime#40896](https://github.com/dotnet/runtime/issues/40896).
+- Exception details were improved in case QUIC connection cannot be established - [dotnet/runtime#70949](https://github.com/dotnet/runtime/issues/70949).
+- Proper usage of Host header for Server Name Identification (SNI) was fixed - [dotnet/runtime#57169](https://github.com/dotnet/runtime/issues/57169).
 
 
 
@@ -182,7 +182,7 @@ while (isRunning)
 await listener.DisposeAsync();
 ```
 
-More details about how this class was designed can be found in the [`QuicListener` API Proposal](https://github.com/dotnet/runtime/issues/67560) issue.
+More details about how this class was designed can be found in the `QuicListener` API Proposal ([dotnet/runtime#67560](https://github.com/dotnet/runtime/issues/67560)).
 
 ### QuicConnection
 
@@ -253,7 +253,7 @@ await connection.CloseAsync(0x0C);
 await connection.DisposeAsync();
 ```
 
-More details about how this class was designed can be found in the [`QuicConnection` API Proposal](https://github.com/dotnet/runtime/issues/68902) issue.
+More details about how this class was designed can be found in the `QuicConnection` API Proposal ([dotnet/runtime#68902](https://github.com/dotnet/runtime/issues/68902)).
 
 ### QuicStream
 
@@ -361,7 +361,7 @@ async ValueTask WritesClosedAsync(QuicStream stream)
 // DisposeAsync called by await using at the top.
 ```
 
-More details about how this class was designed can be found in the [`QuicStream` API Proposal](https://github.com/dotnet/runtime/issues/69675) issue.
+More details about how this class was designed can be found in the `QuicStream` API Proposal ([dotnet/runtime#69675](https://github.com/dotnet/runtime/issues/69675)).
 
 ## Future
 
@@ -376,7 +376,7 @@ As `System.Net.Quic` is newly made public and we have only limited usages, we'll
 
 Prior to .NET 7, Windows Authentication was exposed in the high-level APIs, like `HttpClient` (`Negotiate` and `NTLM` authentication schemes), `SmtpClient` (`GSSAPI` and `NTLM` authentication schemes), `NegotiateStream`, [ASP.NET Core](https://learn.microsoft.com/en-us/aspnet/core/security/authentication/windowsauth?view=aspnetcore-7.0), and the SQL Server client libraries. While that covers most scenarios for end users, it is limiting for library authors. Third-party libraries like the [Npgsql PostgreSQL client](https://www.npgsql.org/), [MailKit](https://github.com/jstedfast/MailKit), [Apache Kudu client](https://github.com/xqrzd/kudu-client-net) and others needed to resort to various tricks to implement the same authentication schemes for low-level protocols that were not built on HTTP or other available high-level building blocks.
 
-.NET 7 introduces new API providing low-level building blocks to perform the authentication exchange for the above mentioned protocols, see [Issue #69920](https://github.com/dotnet/runtime/issues/69920). As with all the other APIs in .NET, it is built with cross-platform interoperability in mind. On Linux, macOS, iOS, and other similar platforms, it uses the GSSAPI system library. On Windows, it relies on the [SSPI](https://learn.microsoft.com/en-us/windows/win32/rpc/sspi-architectural-overview) library. For platforms where system implementation is not available, such as Android and tvOS, a limited client-only implementation is present.
+.NET 7 introduces new API providing low-level building blocks to perform the authentication exchange for the above mentioned protocols, see [dotnet/runtime#69920](https://github.com/dotnet/runtime/issues/69920). As with all the other APIs in .NET, it is built with cross-platform interoperability in mind. On Linux, macOS, iOS, and other similar platforms, it uses the GSSAPI system library. On Windows, it relies on the [SSPI](https://learn.microsoft.com/en-us/windows/win32/rpc/sspi-architectural-overview) library. For platforms where system implementation is not available, such as Android and tvOS, a limited client-only implementation is present.
 
 ### How to use the API
 
@@ -478,7 +478,7 @@ var sslStream = new SslStream(transportStream);
 sslStream.AuthenticateAsServerAsync(options, cancellationToken);
 ```
 
-More info can be found the API proposal [Issue #71191](https://github.com/dotnet/runtime/issues/71191).
+More info can be found in the API proposal ([dotnet/runtime#71191](https://github.com/dotnet/runtime/issues/71191)).
 
 ## Performance
 
@@ -488,23 +488,23 @@ Most of the networking perfomance improvements in .NET 7 are covered by Stephen'
 
 Establishing new TLS connection is fairly expensive operation as it requires multiple steps and several round trips. In scenarios where connection to the same server is re-created very often, time consumed by the handshakes will add up. TLS offers feature to mitigate this called Session Resumption, see [RFC 5246 - 7.3.  Handshake Protocol Overview](https://www.rfc-editor.org/rfc/rfc5246.html#section-7.3) and [RFC 8446 - 2.2.  Resumption and Pre-Shared Key](https://www.rfc-editor.org/rfc/rfc8446#section-2.2). In short, during the handshake, client can send an identification of previously established TLS session and if server agrees, the security context gets re-established based on the cached data from the previous connection. Even though the mechanics differ for different TLS versions, the end goal is the same, save a round-trip and some CPU time when re-establishing connection to a previously connected server.
 This feature is automatically provided by SChannel on Windows, but with OpenSSL on Linux it required several changes to enable this:
-- Server side (stateless): [PR #57079](https://github.com/dotnet/runtime/pull/57079) and [PR #63030](https://github.com/dotnet/runtime/pull/63030)
-- Client side: [PR #64369](https://github.com/dotnet/runtime/pull/64369)
-- Cache size control: [PR #69065](https://github.com/dotnet/runtime/pull/69065)
+- Server side (stateless) - [dotnet/runtime#57079](https://github.com/dotnet/runtime/pull/57079) and [dotnet/runtime#63030](https://github.com/dotnet/runtime/pull/63030).
+- Client side - [dotnet/runtime#64369](https://github.com/dotnet/runtime/pull/64369).
+- Cache size control - [dotnet/runtime#69065](https://github.com/dotnet/runtime/pull/69065).
 
 If caching the TLS context is not desired, it can be turned off process-wide with either environment variable "DOTNET_SYSTEM_NET_SECURITY_DISABLETLSRESUME" or via [`AppContext.SetSwitch`](https://learn.microsoft.com/en-us/dotnet/api/system.appcontext.setswitch?view=net-7.0) "System.Net.Security.TlsCacheSize".
 
 ### OCSP Stapling
 
-Online Certificate Status Protocol (OCSP) Stapling is a mechanism for server to provide signed and timestamped proof (OCSP response) that the sent certificate has not been revoked, see [RFC 6961](https://www.rfc-editor.org/rfc/rfc6961). As a result, client doesn't need to contact the OCSP server itself, reducing the number of requests necessary to establish the connection as well as the load exerted on the OCSP server. And as the OCSP response needs to be signed by the certificate authority (CA), it cannot be forged by the server providing the certificate. We didn't take advantage of this TLS feature until this release, for more details see [Issue #33377](https://github.com/dotnet/runtime/issues/33377).
+Online Certificate Status Protocol (OCSP) Stapling is a mechanism for server to provide signed and timestamped proof (OCSP response) that the sent certificate has not been revoked, see [RFC 6961](https://www.rfc-editor.org/rfc/rfc6961). As a result, client doesn't need to contact the OCSP server itself, reducing the number of requests necessary to establish the connection as well as the load exerted on the OCSP server. And as the OCSP response needs to be signed by the certificate authority (CA), it cannot be forged by the server providing the certificate. We didn't take advantage of this TLS feature until this release, for more details see [dotnet/runtime#33377](https://github.com/dotnet/runtime/issues/33377).
 
 
 ## Consistency across platforms
 
 We are aware, that some of the functionality provided by .NET is available only on certain platforms. But each release we try to narrow the gap a bit more. In .NET 7, we made several changes in the networking security space to improve the disparity:
-- Support for post-handshake authentication on Linux for TLS 1.3: [PR #64268](https://github.com/dotnet/runtime/pull/64268)
-- Remote certificate is now set on Windows in [`SslClientAuthenticationOptions.LocalCertificateSelectionCallback`](https://learn.microsoft.com/en-us/dotnet/api/system.net.security.sslclientauthenticationoptions.localcertificateselectioncallback?view=net-7.0): [PR #65134](https://github.com/dotnet/runtime/pull/65134)
-- Support for sending names of trusted CA in TLS handshake on OSX and Linux: [PR #65195](https://github.com/dotnet/runtime/pull/65195)
+- Support for post-handshake authentication on Linux for TLS 1.3 - [dotnet/runtime#64268](https://github.com/dotnet/runtime/pull/64268)
+- Remote certificate is now set on Windows in [`SslClientAuthenticationOptions.LocalCertificateSelectionCallback`](https://learn.microsoft.com/en-us/dotnet/api/system.net.security.sslclientauthenticationoptions.localcertificateselectioncallback?view=net-7.0) - [dotnet/runtime#65134](https://github.com/dotnet/runtime/pull/65134)
+- Support for sending names of trusted CA in TLS handshake on OSX and Linux - [dotnet/runtime#65195](https://github.com/dotnet/runtime/pull/65195)
 
 
 
